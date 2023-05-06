@@ -1,0 +1,13 @@
+{
+    "ledongmao": {
+        "key": "",
+        "endpoint": "",
+        "maxTokenNum": 100,
+        "temperature": 1,
+        "timeout": 60,
+        "historyContextNum": 3,
+        "systemPrompt": "",
+        "userPrompt": "",
+        "historyContext":[]
+    }
+}
