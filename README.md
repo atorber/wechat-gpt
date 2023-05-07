@@ -19,10 +19,12 @@ npm start
 #绑定+sk-zsL0e6orgRxxxxxx3BlbkFJd2BxgPfl5aB2D7hFgeVA+https://api.openai.com 
 ```
 
+> 已支持api2d，不用梯子可以使用的openai接口 https://api2d.com
+
 ## 效果展示
 
-![1.jpeg](./docs/1.jpeg)
+<img src="./docs/1.jpeg" width="50%" height="50%" />
 
-![2.jpeg](./docs/2.jpeg)
+<img src="./docs/2.jpeg" width="50%" height="50%" />
 
-![3.jpeg](./docs/3.jpeg)
+<img src="./docs/3.jpeg" width="50%" height="50%" />
