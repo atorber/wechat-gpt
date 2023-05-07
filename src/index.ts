@@ -16,6 +16,11 @@ import { getChatGPTReply } from './chatgpt.js'
 const config = getConfig()
 let history = getHistory()
 
+enum KeyWords {
+  Help = '#帮助',
+  HelpText = '发送"#绑定+ChatGPT的key+API地址"绑定GPT配置信息,例如：\n#绑定+sk-zsL0e6orgRxxxxxx3BlbkFJd2BxgPfl5aB2D7hFgeVA+https://api.openai.com',
+}
+
 // 设置定时任务，每隔 10 秒执行一次
 setInterval(() => {
   updateConfig(config)
@@ -65,11 +70,6 @@ async function onMessage (msg: Message) {
   log.info('curId', curId)
 
   const curConfig = config[curId] || undefined
-
-  enum KeyWords {
-    Help = '#帮助',
-    HelpText = '发送"#绑定+ChatGPT的key+API地址"绑定GPT配置信息,例如：\n/绑定+sk-zsL0e6orgRxxxxxx3BlbkFJd2BxgPfl5aB2D7hFgeVA+https://api.openai.com',
-  }
 
   if (text[0] === '#') {
     switch (text) {
