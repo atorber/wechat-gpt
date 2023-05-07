@@ -28,7 +28,7 @@ function getChatGPTConfig (textArr: string[]) {
     endpoint: textArr[2],
     historyContextNum: 6,
     key: textArr[1],
-    maxTokenNum: 100,
+    maxTokenNum: 2048,
     systemPrompt: '',
     temperature: 1,
     timeout: 60,

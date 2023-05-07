@@ -23,8 +23,18 @@ npm start
 
 ## 效果展示
 
-<img src="./docs/1.jpeg" width="50%" height="50%" />
+- 指令说明
+
+<img src="./docs/4.jpeg" width="50%" height="50%" />
+
+- 绑定ChatGPT
 
 <img src="./docs/2.jpeg" width="50%" height="50%" />
 
+- 对话聊天
+
 <img src="./docs/3.jpeg" width="50%" height="50%" />
+
+- 设定参数
+
+<img src="./docs/5.jpeg" width="50%" height="50%" />

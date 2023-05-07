@@ -16,6 +16,7 @@ async function getChatGPTReply (gptConfig: any, messages: any[]) {
       model: 'gpt-3.5-turbo',
       messages,
       temperature: gptConfig.temperature,
+      max_tokens:gptConfig.maxTokenNum,
       n: 1,
       stream: false,
     }
