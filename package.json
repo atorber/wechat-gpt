@@ -45,5 +45,10 @@
     "check-node-version": "^4.2.1",
     "is-pr": "^2.0.0",
     "ts-node": "^10.9.1"
+  },
+  "git": {
+    "scripts": {
+      "pre-push": "npx git-scripts-pre-push"
+    }
   }
 }

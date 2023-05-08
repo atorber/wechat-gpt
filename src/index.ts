@@ -12,6 +12,10 @@ import {
 import qrcodeTerminal from 'qrcode-terminal'
 import { getConfig, getHistory, updateConfig, updateHistory, getChatGPTConfig, storeHistory } from './config.js'
 import { getChatGPTReply } from './chatgpt.js'
+import { FileBox } from 'file-box'
+
+// 导入html-to-docx模块
+import htmlToDocx from 'html-to-docx'
 
 const config = getConfig()
 let history = getHistory()
@@ -22,7 +26,9 @@ enum KeyWords {
   TemperatureText = '发送 #发散度+目标值 设置发散度，发散度取值范围0-1，例：\n\n#发散度+0.8',
   MaxTokenText = '发送 #最大长度+目标值 设置返回消息的最大长度，例：\n\n#最大长度+2048',
   HistoryContextNumText = '发送 #历史上下文数量+目标值 设置请求携带历史消息的数量，建议值1-6，例：\n\n#历史上下文数量+6',
-  TimeoutText = '发送 #超时时间+目标值 设置请求超时时间，建议值30-90，例：\n\n#超时时间+30'
+  TimeoutText = '发送 #超时时间+目标值 设置请求超时时间，建议值30-90，例：\n\n#超时时间+30',
+  ExportFile = '#导出文件',
+  ExportDoc = '#导出文档'
 }
 
 // 设置定时任务，每隔 10 秒执行一次
@@ -32,6 +38,28 @@ setInterval(() => {
 }, 3000)
 
 log.info('config:', JSON.stringify(config, null, '\t'))
+
+async function exportFile (history:any[]) {
+  try {
+    const time = new Date().toLocaleString()
+    let content = `<h2>导出时间</h2><br> ${time}<br><h2>内容记录</h2><br>`
+    for (const record of history) {
+      content += `${record.role} <br>${record.content}<br>`
+    }
+    // 使用html-to-docx库将会议聊天信息转换为word文档的buffer对象
+    const buffer = await htmlToDocx(content)
+    const reg = /[^a-zA-Z0-9]/g
+    // 将buffer对象转换为FileBox对象，用于发送文件
+    const fileBox = FileBox.fromBuffer(buffer, `${time.replace(reg, '')}.docx`)
+    return fileBox
+
+  } catch (err) {
+
+    // 如果出现错误，打印错误信息，并回复给群聊
+    log.error('导出失败', err)
+    return '导出失败，请重试'
+  }
+}
 
 function onScan (qrcode: string, status: ScanStatus) {
   if (status === ScanStatus.Waiting || status === ScanStatus.Timeout) {
@@ -74,12 +102,20 @@ async function onMessage (msg: Message) {
   log.info('curId', curId)
 
   const curConfig = config[curId] || undefined
+  const curHistory = history[curId] || undefined
 
   if (text[0] === '#') {
     const helpText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}`
     switch (text) {
       case KeyWords.Help:
         await msg.say(helpText)
+        break
+      case KeyWords.ExportFile:
+        if (curHistory) {
+          await msg.say(await exportFile(curHistory))
+        } else {
+          await msg.say('没有可导出的内容')
+        }
         break
       default:
         log.info('不支持的指令')
