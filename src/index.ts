@@ -28,7 +28,7 @@ enum KeyWords {
   HistoryContextNumText = '发送 #历史上下文数量+目标值 设置请求携带历史消息的数量，建议值1-6，例：\n\n#历史上下文数量+6',
   TimeoutText = '发送 #超时时间+目标值 设置请求超时时间，建议值30-90，例：\n\n#超时时间+30',
   ExportFile = '#导出文件',
-  ExportDoc = '#导出文档'
+  // ExportDoc = '#导出文档'
 }
 
 // 设置定时任务，每隔 10 秒执行一次
@@ -105,14 +105,14 @@ async function onMessage (msg: Message) {
   const curHistory = history[curId] || undefined
 
   if (text[0] === '#') {
-    const helpText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}`
+    const helpText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}\n\n发送 ${KeyWords} 可导出最近历史聊天记录为word文档`
     switch (text) {
       case KeyWords.Help:
         await msg.say(helpText)
         break
       case KeyWords.ExportFile:
         if (curHistory) {
-          await msg.say(await exportFile(curHistory))
+          await msg.say(await exportFile(curHistory.historyContext))
         } else {
           await msg.say('没有可导出的内容')
         }
