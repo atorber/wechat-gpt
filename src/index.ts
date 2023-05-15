@@ -165,11 +165,17 @@ async function onMessage (msg: Message) {
     if (textArr.length === 2 && textArr[0] === '#系统提示词') {
       log.info('textArr', textArr)
       try {
-        const systemPrompt = Number(textArr[1])
+        const systemPrompt = String(textArr[1])
         if (curConfig) {
-          curConfig['systemPrompt'] = systemPrompt
-          config[curId] = curConfig
-          await msg.say(`系统提示词已设置为：${systemPrompt}`)
+          if (systemPrompt === '清空') {
+            curConfig['systemPrompt'] = ''
+            config[curId] = curConfig
+            await msg.say('系统提示词已清空')
+          } else {
+            curConfig['systemPrompt'] = systemPrompt
+            config[curId] = curConfig
+            await msg.say(`系统提示词已设置为：${systemPrompt}`)
+          }
         } else {
           await msg.say('未配置key，不能设置参数')
         }
@@ -242,9 +248,14 @@ async function onMessage (msg: Message) {
   }
 }
 
+// const bot = WechatyBuilder.build({
+//   name: 'WechatGPT',
+//   puppet: 'wechaty-puppet-wechat4u',
+// })
+
 const bot = WechatyBuilder.build({
   name: 'WechatGPT',
-  puppet: 'wechaty-puppet-wechat4u',
+  puppet: 'wechaty-puppet-xp',
 })
 
 // const bot = WechatyBuilder.build({
