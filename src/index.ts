@@ -174,7 +174,9 @@ async function onMessage (msg: Message) {
           } else {
             curConfig['systemPrompt'] = systemPrompt
             config[curId] = curConfig
-            await msg.say(`系统提示词已设置为：${systemPrompt}`)
+            curConfig.content = []
+            history[curId] = curConfig
+            await msg.say(`历史消息已清理，系统提示词已设置为：${systemPrompt}`)
           }
         } else {
           await msg.say('未配置key，不能设置参数')
