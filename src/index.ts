@@ -122,6 +122,7 @@ async function onMessage (msg: Message) {
       case KeyWords.ClearHistory:
         if (curHistory) {
           curHistory.historyContext = []
+          curHistory.time = []
           history[curId] = curHistory
           await msg.say('历史消息清理完成~')
         } else {
@@ -174,8 +175,9 @@ async function onMessage (msg: Message) {
           } else {
             curConfig['systemPrompt'] = systemPrompt
             config[curId] = curConfig
-            curConfig.content = []
-            history[curId] = curConfig
+            curHistory.historyContext = []
+            curHistory.time = []
+            history[curId] = curHistory
             await msg.say(`历史消息已清理，系统提示词已设置为：${systemPrompt}`)
           }
         } else {
