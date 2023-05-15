@@ -34,15 +34,14 @@
     "wechaty": "^1.20.2",
     "wechaty-puppet-padlocal": "^1.20.1",
     "wechaty-puppet-wechat4u": "^1.13.15",
+    "wechaty-puppet-xp": "^1.12.7",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@chatie/eslint-config": "^1.0.4",
-    "@chatie/git-scripts": "^0.6.2",
-    "@chatie/tsconfig": "^4.6.3",
     "@types/node": "^18.15.11",
     "@types/qrcode-terminal": "^0.12.0",
     "check-node-version": "^4.2.1",
+    "cross-env": "^7.0.3",
     "is-pr": "^2.0.0",
     "ts-node": "^10.9.1"
   },
