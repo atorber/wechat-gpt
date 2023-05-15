@@ -26,8 +26,10 @@ enum KeyWords {
   TemperatureText = '发送 #发散度+目标值 设置发散度，发散度取值范围0-1，例：\n\n#发散度+0.8',
   MaxTokenText = '发送 #最大长度+目标值 设置返回消息的最大长度，例：\n\n#最大长度+2048',
   HistoryContextNumText = '发送 #历史上下文数量+目标值 设置请求携带历史消息的数量，建议值1-6，例：\n\n#历史上下文数量+6',
+  SystemPromptText = '发送 #系统提示词+提示词内容 设置系统提示词，例：\n\n#系统提示词+你是一个中英文互译助手，将用户输入在中英文之间互译',
   TimeoutText = '发送 #超时时间+目标值 设置请求超时时间，建议值30-90，例：\n\n#超时时间+30',
   ExportFile = '#导出文件',
+  ClearHistory = '#清理历史消息'
   // ExportDoc = '#导出文档'
 }
 
@@ -105,7 +107,7 @@ async function onMessage (msg: Message) {
   const curHistory = history[curId] || undefined
 
   if (text[0] === '#') {
-    const helpText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}\n\n发送 ${KeyWords} 可导出最近历史聊天记录为word文档`
+    const helpText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}\n\n${KeyWords.SystemPromptText}\n\n发送 ${KeyWords.ClearHistory} 清理历史消息\n\n发送 ${KeyWords.ExportFile} 可导出最近历史聊天记录为word文档`
     switch (text) {
       case KeyWords.Help:
         await msg.say(helpText)
@@ -115,6 +117,15 @@ async function onMessage (msg: Message) {
           await msg.say(await exportFile(curHistory.historyContext))
         } else {
           await msg.say('没有可导出的内容')
+        }
+        break
+      case KeyWords.ClearHistory:
+        if (curHistory) {
+          curHistory.historyContext = []
+          history[curId] = curHistory
+          await msg.say('历史消息清理完成~')
+        } else {
+          await msg.say('无需清理~')
         }
         break
       default:
@@ -144,6 +155,21 @@ async function onMessage (msg: Message) {
           curConfig['temperature'] = temperature
           config[curId] = curConfig
           await msg.say(`分散度已设置为${temperature}`)
+        } else {
+          await msg.say('未配置key，不能设置参数')
+        }
+      } catch (err) {
+        await msg.say('指令格式有误，请检查后重新输入')
+      }
+    }
+    if (textArr.length === 2 && textArr[0] === '#系统提示词') {
+      log.info('textArr', textArr)
+      try {
+        const systemPrompt = Number(textArr[1])
+        if (curConfig) {
+          curConfig['systemPrompt'] = systemPrompt
+          config[curId] = curConfig
+          await msg.say(`系统提示词已设置为：${systemPrompt}`)
         } else {
           await msg.say('未配置key，不能设置参数')
         }
@@ -199,7 +225,11 @@ async function onMessage (msg: Message) {
   } else {
     if (curConfig) {
       history = storeHistory(history, curId, 'user', text)
-      rePly = await getChatGPTReply(curConfig, history[curId].historyContext.slice(curConfig.historyContextNum * (-1)))
+      const messages:any[] = history[curId].historyContext.slice(curConfig.historyContextNum * (-1))
+      if (curConfig.systemPrompt) {
+        messages.unshift({ content:curConfig.systemPrompt, role:'system' })
+      }
+      rePly = await getChatGPTReply(curConfig, messages)
       await msg.say(rePly['content'])
       if (rePly['role'] !== 'err') {
         history = storeHistory(history, curId, rePly.role, rePly.content)
