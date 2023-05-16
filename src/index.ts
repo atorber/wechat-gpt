@@ -17,6 +17,7 @@ import { FileBox } from 'file-box'
 
 // 导入html-to-docx模块
 import htmlToDocx from 'html-to-docx'
+import { convertSilkToWav, getDuration } from "./utils/voice.js";
 
 const config = getConfig()
 let history = getHistory()
@@ -107,167 +108,194 @@ async function onMessage (msg: Message) {
   const curConfig = config[curId] || undefined
   const curHistory = history[curId] || undefined
 
-  if (text[0] === '#') {
-    const helpText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}\n\n${KeyWords.SystemPromptText}\n\n发送 ${KeyWords.ClearHistory} 清理历史消息\n\n发送 ${KeyWords.ExportFile} 可导出最近历史聊天记录为word文档`
-    switch (text) {
-      case KeyWords.Help:
-        await msg.say(helpText)
-        break
-      case KeyWords.ExportFile:
-        if (curHistory) {
-          await msg.say(await exportFile(curHistory.historyContext))
-        } else {
-          await msg.say('没有可导出的内容')
-        }
-        break
-      case KeyWords.ClearHistory:
-        if (curHistory) {
-          curHistory.historyContext = []
-          curHistory.time = []
-          history[curId] = curHistory
-          await msg.say('历史消息清理完成~')
-        } else {
-          await msg.say('无需清理~')
-        }
-        break
-      default:
-        log.info('不支持的指令')
-    }
-    const textArr = text.split('+')
-    log.info('textArr', textArr)
-    if (textArr.length === 3 && textArr[0] === '#绑定') {
-      log.info('textArr', textArr)
-      const curConfig = getChatGPTConfig(textArr)
-      rePly = await getChatGPTReply(curConfig, [ { content:'你能干什么？', role:'user' } ])
-      if (rePly['role'] !== 'err') {
-        await msg.say('恭喜你配置成功，我是你的ChatGPT智能助手~\n\n' + rePly['content'])
-        history = storeHistory(history, curId, 'user', '你能干什么？')
-        history = storeHistory(history, curId, rePly.role, rePly.content)
-        config[curId] = curConfig
-      } else {
-        await msg.say('输入的配置信息有误或权限不足，请使用key请求api验证配置信息是否正确后重试')
-        delete config[curId]
-      }
-    }
-    if (textArr.length === 2 && textArr[0] === '#发散度') {
-      log.info('textArr', textArr)
-      try {
-        const temperature = Number(textArr[1])
-        if (curConfig) {
-          curConfig['temperature'] = temperature
-          config[curId] = curConfig
-          await msg.say(`分散度已设置为${temperature}`)
-        } else {
-          await msg.say('未配置key，不能设置参数')
-        }
-      } catch (err) {
-        await msg.say('指令格式有误，请检查后重新输入')
-      }
-    }
-    if (textArr.length === 2 && textArr[0] === '#系统提示词') {
-      log.info('textArr', textArr)
-      try {
-        const systemPrompt = String(textArr[1])
-        if (curConfig) {
-          if (systemPrompt === '清空') {
-            curConfig['systemPrompt'] = ''
-            config[curId] = curConfig
-            await msg.say('系统提示词已清空')
+  if (msg.type() === types.Message.Text && !msg.self()) {
+    if (text[0] === '#') {
+      const helpText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}\n\n${KeyWords.SystemPromptText}\n\n发送 ${KeyWords.ClearHistory} 清理历史消息\n\n发送 ${KeyWords.ExportFile} 可导出最近历史聊天记录为word文档`
+      switch (text) {
+        case KeyWords.Help:
+          await msg.say(helpText)
+          break
+        case KeyWords.ExportFile:
+          if (curHistory) {
+            await msg.say(await exportFile(curHistory.historyContext))
           } else {
-            curConfig['systemPrompt'] = systemPrompt
-            config[curId] = curConfig
+            await msg.say('没有可导出的内容')
+          }
+          break
+        case KeyWords.ClearHistory:
+          if (curHistory) {
             curHistory.historyContext = []
             curHistory.time = []
             history[curId] = curHistory
-            await msg.say(`历史消息已清理，系统提示词已设置为：${systemPrompt}`)
+            await msg.say('历史消息清理完成~')
+          } else {
+            await msg.say('无需清理~')
           }
-        } else {
-          await msg.say('未配置key，不能设置参数')
-        }
-      } catch (err) {
-        await msg.say('指令格式有误，请检查后重新输入')
+          break
+        default:
+          log.info('不支持的指令')
       }
-    }
-    if (textArr.length === 2 && textArr[0] === '#最大长度') {
+      const textArr = text.split('+')
       log.info('textArr', textArr)
-      try {
-        const maxTokenNum = Number(textArr[1])
-        if (curConfig) {
-          curConfig['maxTokenNum'] = maxTokenNum
+      if (textArr.length === 3 && textArr[0] === '#绑定') {
+        log.info('textArr', textArr)
+        const curConfig = getChatGPTConfig(textArr)
+        rePly = await getChatGPTReply(curConfig, [ { content:'你能干什么？', role:'user' } ])
+        if (rePly['role'] !== 'err') {
+          await msg.say('恭喜你配置成功，我是你的ChatGPT智能助手~\n\n' + rePly['content'])
+          history = storeHistory(history, curId, 'user', '你能干什么？')
+          history = storeHistory(history, curId, rePly.role, rePly.content)
           config[curId] = curConfig
-          await msg.say(`最大长度已设置为${maxTokenNum}`)
         } else {
-          await msg.say('未配置key，不能设置参数')
+          await msg.say('输入的配置信息有误或权限不足，请使用key请求api验证配置信息是否正确后重试')
+          delete config[curId]
         }
-      } catch (err) {
-        await msg.say('指令格式有误，请检查后重新输入')
       }
-    }
-    if (textArr.length === 2 && textArr[0] === '#历史上下文数量') {
-      log.info('textArr', textArr)
-      try {
-        const historyContextNum = Number(textArr[1])
-        if (curConfig) {
-          curConfig['historyContextNum'] = historyContextNum
-          config[curId] = curConfig
-          await msg.say(`历史上下文数量已设置为${historyContextNum}`)
-        } else {
-          await msg.say('未配置key，不能设置参数')
+      if (textArr.length === 2 && textArr[0] === '#发散度') {
+        log.info('textArr', textArr)
+        try {
+          const temperature = Number(textArr[1])
+          if (curConfig) {
+            curConfig['temperature'] = temperature
+            config[curId] = curConfig
+            await msg.say(`分散度已设置为${temperature}`)
+          } else {
+            await msg.say('未配置key，不能设置参数')
+          }
+        } catch (err) {
+          await msg.say('指令格式有误，请检查后重新输入')
         }
-      } catch (err) {
-        await msg.say('指令格式有误，请检查后重新输入')
       }
-    }
-    if (textArr.length === 2 && textArr[0] === '#超时时间') {
-      log.info('textArr', textArr)
-      try {
-        const timeout = Number(textArr[1])
-        if (curConfig) {
-          curConfig['timeout'] = timeout
-          config[curId] = curConfig
-          await msg.say(`超时时间已设置为${timeout}秒`)
-        } else {
-          await msg.say('未配置key，不能设置参数')
+      if (textArr.length === 2 && textArr[0] === '#系统提示词') {
+        log.info('textArr', textArr)
+        try {
+          const systemPrompt = String(textArr[1])
+          if (curConfig) {
+            if (systemPrompt === '清空') {
+              curConfig['systemPrompt'] = ''
+              config[curId] = curConfig
+              await msg.say('系统提示词已清空')
+            } else {
+              curConfig['systemPrompt'] = systemPrompt
+              config[curId] = curConfig
+              curHistory.historyContext = []
+              curHistory.time = []
+              history[curId] = curHistory
+              await msg.say(`历史消息已清理，系统提示词已设置为：${systemPrompt}`)
+            }
+          } else {
+            await msg.say('未配置key，不能设置参数')
+          }
+        } catch (err) {
+          await msg.say('指令格式有误，请检查后重新输入')
         }
-      } catch (err) {
-        await msg.say('指令格式有误，请检查后重新输入')
       }
-    }
-  } else {
-    if (curConfig && types.Message.Text === msg.type()) {
-      history = storeHistory(history, curId, 'user', text)
-      const messages:any[] = history[curId].historyContext.slice(curConfig.historyContextNum * (-1))
-      if (curConfig.systemPrompt) {
-        messages.unshift({ content:curConfig.systemPrompt, role:'system' })
+      if (textArr.length === 2 && textArr[0] === '#最大长度') {
+        log.info('textArr', textArr)
+        try {
+          const maxTokenNum = Number(textArr[1])
+          if (curConfig) {
+            curConfig['maxTokenNum'] = maxTokenNum
+            config[curId] = curConfig
+            await msg.say(`最大长度已设置为${maxTokenNum}`)
+          } else {
+            await msg.say('未配置key，不能设置参数')
+          }
+        } catch (err) {
+          await msg.say('指令格式有误，请检查后重新输入')
+        }
       }
-      rePly = await getChatGPTReply(curConfig, messages)
-      await msg.say(rePly['content'])
-      if (rePly['role'] !== 'err') {
-        history = storeHistory(history, curId, rePly.role, rePly.content)
-      } else {
-        history[curId].historyContext.pop()
+      if (textArr.length === 2 && textArr[0] === '#历史上下文数量') {
+        log.info('textArr', textArr)
+        try {
+          const historyContextNum = Number(textArr[1])
+          if (curConfig) {
+            curConfig['historyContextNum'] = historyContextNum
+            config[curId] = curConfig
+            await msg.say(`历史上下文数量已设置为${historyContextNum}`)
+          } else {
+            await msg.say('未配置key，不能设置参数')
+          }
+        } catch (err) {
+          await msg.say('指令格式有误，请检查后重新输入')
+        }
+      }
+      if (textArr.length === 2 && textArr[0] === '#超时时间') {
+        log.info('textArr', textArr)
+        try {
+          const timeout = Number(textArr[1])
+          if (curConfig) {
+            curConfig['timeout'] = timeout
+            config[curId] = curConfig
+            await msg.say(`超时时间已设置为${timeout}秒`)
+          } else {
+            await msg.say('未配置key，不能设置参数')
+          }
+        } catch (err) {
+          await msg.say('指令格式有误，请检查后重新输入')
+        }
       }
     } else {
-      log.info('curConfig 不存在')
+      if (curConfig) {
+        history = storeHistory(history, curId, 'user', text)
+        const messages:any[] = history[curId].historyContext.slice(curConfig.historyContextNum * (-1))
+        if (curConfig.systemPrompt) {
+          messages.unshift({ content:curConfig.systemPrompt, role:'system' })
+        }
+        rePly = await getChatGPTReply(curConfig, messages)
+        await msg.say(rePly['content'])
+        if (rePly['role'] !== 'err') {
+          history = storeHistory(history, curId, rePly.role, rePly.content)
+        } else {
+          history[curId].historyContext.pop()
+        }
+      } else {
+        log.info('curConfig 不存在')
+      }
+    }
+  }
+
+  if (msg.type() === types.Message.Audio) {
+    try{
+      const voiceFile = await msg.toFileBox()
+      const fileName = voiceFile.name
+      await voiceFile.toFile(fileName)
+      log.info('voice:', fileName)
+      await convertSilkToWav(fileName)
+    } catch(err){
+      log.error(err)
     }
   }
 }
 
-// const bot = WechatyBuilder.build({
-//   name: 'WechatGPT',
-//   puppet: 'wechaty-puppet-wechat4u',
-// })
-
 const bot = WechatyBuilder.build({
   name: 'WechatGPT',
-  puppet: 'wechaty-puppet-xp',
+  puppet: 'wechaty-puppet-wechat4u',
 })
+
+// const bot = WechatyBuilder.build({
+//   name: 'WechatGPT',
+//   puppet: 'wechaty-puppet-service',
+//   puppetOptions: {
+//   token: 'your token',
+//   },
+// })
+
+// const bot = WechatyBuilder.build({
+//   name: 'WechatGPT',
+//   puppet: 'wechaty-puppet-wechat',
+// })
+
+// const bot = WechatyBuilder.build({
+//   name: 'WechatGPT',
+//   puppet: 'wechaty-puppet-xp',
+// })
 
 // const bot = WechatyBuilder.build({
 //   name: 'WechatGPT',
 //   puppet: 'wechaty-puppet-padlocal',
 //   puppetOptions:{
-//     token: 'padlocal token',
+//     token: 'your token',
 //   },
 // })
 
