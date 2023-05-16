@@ -10,7 +10,7 @@ import path from "path";
 // import { exec } from "child_process";
 
 const voice = new WxVoice();
-const outputFolder = process.env.OUTPUT_FOLDER || "output";
+const outputFolder = "output";
 
 voice.on("error", (err: any) => log.error('err:', err));
 

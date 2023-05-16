@@ -17,7 +17,7 @@ import { FileBox } from 'file-box'
 
 // 导入html-to-docx模块
 import htmlToDocx from 'html-to-docx'
-import { convertSilkToWav, getDuration } from "./utils/voice.js";
+// import { convertSilkToWav } from './utils/voice.js'
 
 const config = getConfig()
 let history = getHistory()
@@ -250,41 +250,45 @@ async function onMessage (msg: Message) {
           history[curId].historyContext.pop()
         }
       } else {
-        log.info('curConfig 不存在')
+        log.info('不在白名单内：', curId)
       }
     }
   }
 
-  if (msg.type() === types.Message.Audio) {
-    try{
-      const voiceFile = await msg.toFileBox()
-      const fileName = voiceFile.name
-      await voiceFile.toFile(fileName)
-      log.info('voice:', fileName)
-      await convertSilkToWav(fileName)
-    } catch(err){
-      log.error(err)
-    }
-  }
+  // if (msg.type() === types.Message.Audio) {
+  //   try {
+  //     const voiceFile = await msg.toFileBox()
+  //     const fileName = voiceFile.name
+  //     await voiceFile.toFile(fileName)
+  //     log.info('voice:', fileName)
+  //     await convertSilkToWav(fileName)
+  //   } catch (err) {
+  //     log.error('err:', err)
+  //   }
+  // }
+
 }
 
-const bot = WechatyBuilder.build({
-  name: 'WechatGPT',
-  puppet: 'wechaty-puppet-wechat4u',
-})
+// const bot = WechatyBuilder.build({
+//   name: 'WechatGPT',
+//   puppet: 'wechaty-puppet-wechat4u',
+// })
 
 // const bot = WechatyBuilder.build({
 //   name: 'WechatGPT',
 //   puppet: 'wechaty-puppet-service',
 //   puppetOptions: {
-//   token: 'your token',
+//     token: 'your token',
 //   },
 // })
 
-// const bot = WechatyBuilder.build({
-//   name: 'WechatGPT',
-//   puppet: 'wechaty-puppet-wechat',
-// })
+const bot = WechatyBuilder.build({
+  name: 'WechatGPT',
+  puppet: 'wechaty-puppet-wechat',
+  puppetOptions:{
+    uos:true
+  }
+})
 
 // const bot = WechatyBuilder.build({
 //   name: 'WechatGPT',
