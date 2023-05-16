@@ -1,14 +1,12 @@
-# 使用官方Node.js 16镜像（包含了基于Alpine的最小化节点环境）
-FROM node:16-alpine
+# 使用官方Node.js 16镜像（包含了基于Ubuntu的节点环境）
+FROM node:16
 
-# 安装软件源更新和curl功能
-RUN apk update && apk add --no-cache curl
-
-# 安装必要的构建工具和库以及软件包，用于使用ffmpeg功能
-RUN apk add --no-cache --update --upgrade --virtual .build-deps \
-    build-base \
-    python3 \
-    ffmpeg
+# 安装需要的软件
+RUN apt-get update && \
+    apt-get install -y curl software-properties-common && \
+    add-apt-repository ppa:mc3man/trusty-media && \
+    apt-get update && \
+    apt-get install -y ffmpeg
 
 # 创建工作目录
 WORKDIR /usr/src/app
