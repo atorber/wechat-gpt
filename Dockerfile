@@ -12,7 +12,7 @@ RUN apt-get install -y nodejs
 RUN apt-get install -y software-properties-common
 
 # 安装ffmpeg
-RUN add-apt-repository ppa:mc3man/trusty-media 
+RUN add-apt-repository ppa:jonathonf/ffmpeg-4 
 RUN apt-get update 
 RUN apt-get install ffmpeg
 
@@ -26,9 +26,6 @@ COPY . .
 RUN npm install wx-voice --save
 RUN npm install wx-voice -g
 RUN npm install
-
-# 暴露端口3000
-EXPOSE 3000
 
 # 编译wx-voice
 ENTRYPOINT ["wx-voice", "compile"]
