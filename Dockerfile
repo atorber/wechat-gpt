@@ -1,20 +1,14 @@
-# 指定基础镜像为ubuntu18
-FROM ubuntu:18.04
+# 使用官方Node.js 16镜像（包含了基于Alpine的最小化节点环境）
+FROM node:16-alpine
 
-# 更新软件源并安装curl
-RUN apt-get update && apt-get install -y curl
+# 安装软件源更新和curl功能
+RUN apk update && apk add --no-cache curl
 
-# 安装nodejs16
-RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
-RUN apt-get install -y nodejs
-
-# 安装software-properties-common
-RUN apt-get install -y software-properties-common
-
-# 安装ffmpeg
-RUN add-apt-repository ppa:jonathonf/ffmpeg-4 
-RUN apt-get update 
-RUN apt-get install ffmpeg
+# 安装必要的构建工具和库以及软件包，用于使用ffmpeg功能
+RUN apk add --no-cache --update --upgrade --virtual .build-deps \
+    build-base \
+    python3 \
+    ffmpeg
 
 # 创建工作目录
 WORKDIR /usr/src/app
@@ -23,11 +17,9 @@ WORKDIR /usr/src/app
 COPY . .
 
 # 安装依赖
-RUN npm install wx-voice --save
-RUN npm install wx-voice -g
 RUN npm install
 
-# 编译wx-voice
+# 设置默认运行模式 
 ENTRYPOINT ["wx-voice", "compile"]
 
 # 启动应用
