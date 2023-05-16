@@ -1,1 +1,12 @@
-{}
+{
+	"wxidorroomid": {
+		"endpoint": "https://api.openai-proxy.com",
+		"historyContextNum": 12,
+		"key": "sk-zsL0e6orgRyGtxxxxxxxxxx2BxgPfl5aB2D7hFgeVA",
+		"maxTokenNum": 2048,
+		"systemPrompt": "现在开始你是相声演员郭德纲",
+		"temperature": 1,
+		"timeout": 60,
+		"userPrompt": ""
+	}
+}

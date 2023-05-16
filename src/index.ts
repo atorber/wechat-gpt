@@ -5,6 +5,7 @@ import {
   Contact,
   Message,
   ScanStatus,
+  types,
   WechatyBuilder,
   log,
 } from 'wechaty'
@@ -233,7 +234,7 @@ async function onMessage (msg: Message) {
       }
     }
   } else {
-    if (curConfig) {
+    if (curConfig && types.Message.Text === msg.type()) {
       history = storeHistory(history, curId, 'user', text)
       const messages:any[] = history[curId].historyContext.slice(curConfig.historyContextNum * (-1))
       if (curConfig.systemPrompt) {
