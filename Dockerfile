@@ -1,11 +1,9 @@
-# 使用官方Node.js 16镜像（包含了基于Ubuntu的节点环境）
+# 使用官方Node.js 16镜像（包含基于Ubuntu的节点环境）
 FROM node:16
 
 # 安装需要的软件
 RUN apt-get update && \
     apt-get install -y curl software-properties-common && \
-    add-apt-repository ppa:mc3man/trusty-media && \
-    apt-get update && \
     apt-get install -y ffmpeg
 
 # 创建工作目录
@@ -16,6 +14,7 @@ COPY . .
 
 # 安装依赖
 RUN npm install
+RUN npm install wx-voice -g
 
 # 设置默认运行模式 
 ENTRYPOINT ["wx-voice", "compile"]
