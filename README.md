@@ -38,6 +38,62 @@ const baseConfig = {
 }
 ```
 
+## 安装语音转文字插件
+
+详细步骤参考 https://github.com/Ang-YC/wx-voice
+
+> 成功安装插件后可在index.ts中解除注释，使用语音与gpt聊天问答
+
+1. 安装依赖
+
+```
+npm install wx-voice --save
+npm install wx-voice -g
+wx-voice compile
+```
+
+2. 安装ffmpeg（Windows操作系统安装方式及环境变量设置自行百度）
+
+Ubuntu
+
+```
+sudo add-apt-repository ppa:mc3man/trusty-media  
+sudo apt-get update  
+sudo apt-get install ffmpeg
+```
+
+CentOS
+
+```
+sudo yum install epel-release
+sudo yum update
+sudo rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro
+```
+
+For CentOS 7:
+
+```
+sudo rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-5.el7.nux.noarch.rpm
+```
+
+For CentOS 6:
+
+```
+sudo rpm -Uvh http://li.nux.ro/download/nux/dextop/el6/x86_64/nux-dextop-release-0-2.el6.nux.noarch.rpm
+```
+
+Install FFMPEG:
+
+```
+sudo yum install ffmpeg
+```
+
+Mac
+
+```
+brew install ffmpeg
+```
+
 ## 机器人协议支持
 
 可参考 [wechat-openai-qa-bot](https://github.com/choogoo/wechat-openai-qa-bot) 项目关于wechaty机器人协议的支持，自行切换至其他协议 https://www.yuque.com/atorber/oegota/hgmhxclivlwn090z
