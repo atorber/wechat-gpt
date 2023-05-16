@@ -1,4 +1,4 @@
-# 指定基础镜像为ubuntu18
+# 指定基础镜像为ubuntu20.04
 FROM ubuntu:20.04
 
 # 更新软件源并安装curl
@@ -7,6 +7,9 @@ RUN apt-get update && apt-get install -y curl
 # 安装nodejs16
 RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
 RUN apt-get install -y nodejs
+
+# 安装software-properties-common
+RUN apt-get install -y software-properties-common
 
 # 安装ffmpeg
 RUN add-apt-repository ppa:mc3man/trusty-media 
