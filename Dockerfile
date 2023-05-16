@@ -1,5 +1,5 @@
-# 指定基础镜像为ubuntu20.04
-FROM ubuntu:20.04
+# 指定基础镜像为ubuntu18
+FROM ubuntu:18.04
 
 # 更新软件源并安装curl
 RUN apt-get update && apt-get install -y curl
@@ -26,6 +26,9 @@ COPY . .
 RUN npm install wx-voice --save
 RUN npm install wx-voice -g
 RUN npm install
+
+# 暴露端口3000
+EXPOSE 3000
 
 # 编译wx-voice
 ENTRYPOINT ["wx-voice", "compile"]
