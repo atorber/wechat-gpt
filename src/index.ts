@@ -1,25 +1,21 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
 import 'dotenv/config.js'
-
-import {
-  Contact,
-  Message,
-  ScanStatus,
-  types,
-  WechatyBuilder,
-  log,
-} from 'wechaty'
-
+import { Contact, Message, ScanStatus, types, WechatyBuilder, log, } from 'wechaty'
 import qrcodeTerminal from 'qrcode-terminal'
-import { getConfig, getHistory, updateConfig, updateHistory, getChatGPTConfig, storeHistory } from './config.js'
+import { baseConfig, getConfig, getHistory, saveConfigFile, updateHistory, getChatGPTConfig, storeHistory } from './config.js'
 import { getChatGPTReply } from './chatgpt.js'
 import { FileBox } from 'file-box'
-
-// 导入html-to-docx模块
 import htmlToDocx from 'html-to-docx'
+
+/* 将以下两行取消注释可以使用语音请求*/
+
 // import { convertSilkToWav } from './utils/voice.js'
+// import { vop } from './utils/baiduai.js'
+
+/*******************************/
 
 const config = getConfig()
+const whiteList = config.whiteList
 let history = getHistory()
 
 enum KeyWords {
@@ -35,13 +31,21 @@ enum KeyWords {
   // ExportDoc = '#导出文档'
 }
 
-// 设置定时任务，每隔 10 秒执行一次
+// 设置定时任务，每隔 3 秒执行一次
 setInterval(() => {
-  updateConfig(config)
+  config.lastSave = new Date().toLocaleString()
+  saveConfigFile(config)
   updateHistory(history)
+  // log.info('配置已保存')
 }, 3000)
 
-log.info('config:', JSON.stringify(config, null, '\t'))
+// log.info('config:', JSON.stringify(config, null, '\t'))
+
+function updateConfig ( curId:string, curUserConfig:any) {
+  whiteList[curId] = curUserConfig
+  config.whiteList = whiteList
+  config.lastUpdate = new Date().toLocaleString()
+}
 
 async function exportFile (history:any[]) {
   try {
@@ -93,7 +97,7 @@ async function onMessage (msg: Message) {
 
   const talker = msg.talker()
   const room = msg.room()
-  const text = msg.text()
+  let text = msg.text()
 
   let rePly:any = {}
   let curId = ''
@@ -105,10 +109,35 @@ async function onMessage (msg: Message) {
   }
   log.info('curId', curId)
 
-  const curConfig = config[curId] || undefined
+  if (msg.type() === types.Message.Audio) {
+    try {
+      text = ''
+
+      /*取消以下注释可以使用语音请求*/
+
+      // const voiceFile = await msg.toFileBox()
+      // const fileName = voiceFile.name
+      // await voiceFile.toFile(fileName)
+      // log.info('voice:', fileName)
+      // const newFile = await convertSilkToWav(fileName)
+      // log.info(newFile)
+      // const res:any = await vop(newFile)
+      // log.info('res:', JSON.stringify(res.result[0]))
+      // if (res.err_msg === 'success.') {
+      //  text = res.result[0]
+      // }
+
+      /**************************/
+      
+    } catch (err) {
+      log.error('err:', err)
+    }
+  }
+
+  const curUserConfig = whiteList[curId] || undefined
   const curHistory = history[curId] || undefined
 
-  if (msg.type() === types.Message.Text && !msg.self()) {
+  if ((msg.type() === types.Message.Text || msg.type() === types.Message.Audio) && !msg.self()) {
     if (text[0] === '#') {
       const helpText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}\n\n${KeyWords.SystemPromptText}\n\n发送 ${KeyWords.ClearHistory} 清理历史消息\n\n发送 ${KeyWords.ExportFile} 可导出最近历史聊天记录为word文档`
       switch (text) {
@@ -139,25 +168,24 @@ async function onMessage (msg: Message) {
       log.info('textArr', textArr)
       if (textArr.length === 3 && textArr[0] === '#绑定') {
         log.info('textArr', textArr)
-        const curConfig = getChatGPTConfig(textArr)
-        rePly = await getChatGPTReply(curConfig, [ { content:'你能干什么？', role:'user' } ])
+        const curUserConfig = getChatGPTConfig(textArr)
+        rePly = await getChatGPTReply(curUserConfig, [ { content:'你能干什么？', role:'user' } ])
         if (rePly['role'] !== 'err') {
           await msg.say('恭喜你配置成功，我是你的ChatGPT智能助手~\n\n' + rePly['content'])
           history = storeHistory(history, curId, 'user', '你能干什么？')
           history = storeHistory(history, curId, rePly.role, rePly.content)
-          config[curId] = curConfig
+          updateConfig(curId, curUserConfig)
         } else {
           await msg.say('输入的配置信息有误或权限不足，请使用key请求api验证配置信息是否正确后重试')
-          delete config[curId]
         }
       }
       if (textArr.length === 2 && textArr[0] === '#发散度') {
         log.info('textArr', textArr)
         try {
           const temperature = Number(textArr[1])
-          if (curConfig) {
-            curConfig['temperature'] = temperature
-            config[curId] = curConfig
+          if (curUserConfig) {
+            curUserConfig['temperature'] = temperature
+            updateConfig(curId, curUserConfig)
             await msg.say(`分散度已设置为${temperature}`)
           } else {
             await msg.say('未配置key，不能设置参数')
@@ -170,14 +198,15 @@ async function onMessage (msg: Message) {
         log.info('textArr', textArr)
         try {
           const systemPrompt = String(textArr[1])
-          if (curConfig) {
+          if (curUserConfig) {
             if (systemPrompt === '清空') {
-              curConfig['systemPrompt'] = ''
-              config[curId] = curConfig
+              curUserConfig['systemPrompt'] = ''
+              updateConfig(curId, curUserConfig)
               await msg.say('系统提示词已清空')
             } else {
-              curConfig['systemPrompt'] = systemPrompt
-              config[curId] = curConfig
+              curUserConfig['systemPrompt'] = systemPrompt
+              whiteList[curId] = curUserConfig
+              config.whiteList = whiteList
               curHistory.historyContext = []
               curHistory.time = []
               history[curId] = curHistory
@@ -194,9 +223,9 @@ async function onMessage (msg: Message) {
         log.info('textArr', textArr)
         try {
           const maxTokenNum = Number(textArr[1])
-          if (curConfig) {
-            curConfig['maxTokenNum'] = maxTokenNum
-            config[curId] = curConfig
+          if (curUserConfig) {
+            curUserConfig['maxTokenNum'] = maxTokenNum
+            updateConfig(curId, curUserConfig)
             await msg.say(`最大长度已设置为${maxTokenNum}`)
           } else {
             await msg.say('未配置key，不能设置参数')
@@ -209,9 +238,9 @@ async function onMessage (msg: Message) {
         log.info('textArr', textArr)
         try {
           const historyContextNum = Number(textArr[1])
-          if (curConfig) {
-            curConfig['historyContextNum'] = historyContextNum
-            config[curId] = curConfig
+          if (curUserConfig) {
+            curUserConfig['historyContextNum'] = historyContextNum
+            updateConfig(curId, curUserConfig)
             await msg.say(`历史上下文数量已设置为${historyContextNum}`)
           } else {
             await msg.say('未配置key，不能设置参数')
@@ -224,9 +253,9 @@ async function onMessage (msg: Message) {
         log.info('textArr', textArr)
         try {
           const timeout = Number(textArr[1])
-          if (curConfig) {
-            curConfig['timeout'] = timeout
-            config[curId] = curConfig
+          if (curUserConfig) {
+            curUserConfig['timeout'] = timeout
+            updateConfig(curId, curUserConfig)
             await msg.say(`超时时间已设置为${timeout}秒`)
           } else {
             await msg.say('未配置key，不能设置参数')
@@ -236,13 +265,13 @@ async function onMessage (msg: Message) {
         }
       }
     } else {
-      if (curConfig) {
+      if (curUserConfig && text) {
         history = storeHistory(history, curId, 'user', text)
-        const messages:any[] = history[curId].historyContext.slice(curConfig.historyContextNum * (-1))
-        if (curConfig.systemPrompt) {
-          messages.unshift({ content:curConfig.systemPrompt, role:'system' })
+        const messages:any[] = history[curId].historyContext.slice(curUserConfig.historyContextNum * (-1))
+        if (curUserConfig.systemPrompt) {
+          messages.unshift({ content:curUserConfig.systemPrompt, role:'system' })
         }
-        rePly = await getChatGPTReply(curConfig, messages)
+        rePly = await getChatGPTReply(curUserConfig, messages)
         await msg.say(rePly['content'])
         if (rePly['role'] !== 'err') {
           history = storeHistory(history, curId, rePly.role, rePly.content)
@@ -255,54 +284,37 @@ async function onMessage (msg: Message) {
     }
   }
 
-  // if (msg.type() === types.Message.Audio) {
-  //   try {
-  //     const voiceFile = await msg.toFileBox()
-  //     const fileName = voiceFile.name
-  //     await voiceFile.toFile(fileName)
-  //     log.info('voice:', fileName)
-  //     await convertSilkToWav(fileName)
-  //   } catch (err) {
-  //     log.error('err:', err)
-  //   }
-  // }
-
 }
 
-// const bot = WechatyBuilder.build({
-//   name: 'WechatGPT',
-//   puppet: 'wechaty-puppet-wechat4u',
-// })
-
-// const bot = WechatyBuilder.build({
-//   name: 'WechatGPT',
-//   puppet: 'wechaty-puppet-service',
-//   puppetOptions: {
-//     token: 'your token',
-//   },
-// })
-
-const bot = WechatyBuilder.build({
+// 构建机器人
+const ops: any = {
   name: 'WechatGPT',
-  puppet: 'wechaty-puppet-wechat',
-  puppetOptions:{
-    uos:true
-  }
-})
+  puppet: baseConfig.wechaty.puppet,
+} // 默认web版微信客户端
 
-// const bot = WechatyBuilder.build({
-//   name: 'WechatGPT',
-//   puppet: 'wechaty-puppet-xp',
-// })
+const token = baseConfig.wechaty.token
+const puppet = baseConfig.wechaty.puppet
+log.info('puppet:', puppet)
+switch(puppet){
+  case 'wechaty-puppet-service':// 企业版微信客户端
+    ops.puppetOptions = {token}
+    process.env['WECHATY_PUPPET_SERVICE_NO_TLS_INSECURE_CLIENT'] = 'true'
+    break
+  case 'wechaty-puppet-wechat4u':
+    break
+  case 'wechaty-puppet-wechat':// web版微信客户端
+    ops.puppetOptions = {uos:true}
+    break
+  case 'wechaty-puppet-xp':
+    break
+  case 'wechaty-puppet-padlocal':
+    ops.puppetOptions = {token}
+    break
+  default:
+    log.info('不支持的puppet') 
+}
 
-// const bot = WechatyBuilder.build({
-//   name: 'WechatGPT',
-//   puppet: 'wechaty-puppet-padlocal',
-//   puppetOptions:{
-//     token: 'your token',
-//   },
-// })
-
+const bot = WechatyBuilder.build(ops)
 bot.on('scan',    onScan)
 bot.on('login',   onLogin)
 bot.on('logout',  onLogout)

@@ -13,7 +13,7 @@ npm start
 
 2.扫描二维码登录微信
 
-3.使用任意微信（可以是当前登录机器人的微信向自己发送消息）发送 #帮助
+3.使用任意微信发送 #帮助 可获取操作指令
 
 4.发送如下格式给机器人，完成ChatGPT配置
 
@@ -22,6 +22,21 @@ npm start
 ```
 
 > 已支持api2d，不用梯子可以使用的openai接口 https://api2d.com
+
+修改配置文件可更换puppet及配置百度云语音转文字接口ak、sk
+
+```
+const baseConfig = {
+  "wechaty": {
+		"puppet": "wechaty-puppet-wechat", //可选puppet：wechaty-puppet-wechat、wechaty-puppet-wechat4u、wechaty-puppet-xp、wechaty-puppet-padlocal、wechaty-puppet-service
+		"token": "" //wechaty token
+	},
+	"baiduvop": {
+		"ak": "", //百度云语音转文字接口ak
+		"sk": "" //百度云语音转文字接口sk
+	},
+}
+```
 
 ## 机器人协议支持
 
@@ -63,6 +78,11 @@ npm start
 
 ## 更新日志
 
+v0.7.0
+
+- 新增语音聊天，支持使用语音与GPT对话，使用百度云语音转文字接口（index.ts文件中注释部分）
+- 优化配置文件
+
 v0.6.0
 
 - 新增 #系统提示词+现在开始你是相声演员郭德纲，你将以郭德纲的身份回答我的问题 系统提示词设置功能
@@ -71,3 +91,9 @@ v0.6.0
 v0.5.0
 
 - 新增 #导出文件 功能，发送指令可导出最近消息为word文件
+
+## 工具
+
+安装语音转化 https://github.com/Ang-YC/wx-voice
+
+mac安装 brew install ffmpeg https://blog.csdn.net/weixin_42238038/article/details/122283307

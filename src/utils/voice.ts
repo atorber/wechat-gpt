@@ -3,6 +3,7 @@
  */
 // @ts-ignore
 import WxVoice from "wx-voice";
+import fs from 'fs'
 import {
     log,
   } from 'wechaty'
@@ -37,6 +38,11 @@ export async function convertSilkToWav(filePath: string) {
             },
             (file: any) => {
                 if (file) {
+                    // 异步删除文件
+fs.unlink(filePath, (err) => {
+    if (err) throw err;
+    console.log('已删除', filePath);
+  });
                     resolve(
                         path.join(
                             outputFolder,
