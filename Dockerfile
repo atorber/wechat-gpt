@@ -16,8 +16,5 @@ COPY . .
 RUN npm install
 RUN npm install wx-voice -g
 
-# 设置默认运行模式 
-ENTRYPOINT ["wx-voice", "compile"]
-
 # 启动应用
-CMD ["npm", "run", "start"]
+CMD ["sh", "-c", "wx-voice compile && npm run start"]
