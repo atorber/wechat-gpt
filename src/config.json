@@ -1,7 +1,7 @@
 {
 	"lastSave": "5/17/2023, 1:22:12 AM",
 	"lastUpdate": "",
-	"whitelist": {
+	"whiteList": {
 		"wxidorroomid": {
 			"endpoint": "https://api.openai-proxy.com",
 			"historyContextNum": 12,
