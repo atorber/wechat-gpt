@@ -9,8 +9,8 @@ import htmlToDocx from 'html-to-docx'
 
 /* 将以下两行取消注释可以使用语音请求*/
 
-// import { convertSilkToWav } from './utils/voice.js'
-// import { vop } from './utils/baiduai.js'
+import { convertSilkToWav } from './utils/voice.js'
+import { vop } from './utils/baiduai.js'
 
 /*******************************/
 
@@ -115,17 +115,17 @@ async function onMessage (msg: Message) {
 
       /*取消以下注释可以使用语音请求*/
 
-      // const voiceFile = await msg.toFileBox()
-      // const fileName = voiceFile.name
-      // await voiceFile.toFile(fileName)
-      // log.info('voice:', fileName)
-      // const newFile = await convertSilkToWav(fileName)
-      // log.info(newFile)
-      // const res:any = await vop(newFile)
-      // log.info('res:', JSON.stringify(res.result[0]))
-      // if (res.err_msg === 'success.') {
-      //   text = res.result[0]
-      // }
+      const voiceFile = await msg.toFileBox()
+      const fileName = voiceFile.name
+      await voiceFile.toFile(fileName)
+      log.info('voice:', fileName)
+      const newFile = await convertSilkToWav(fileName)
+      log.info(newFile)
+      const res:any = await vop(newFile)
+      log.info('res:', JSON.stringify(res.result[0]))
+      if (res.err_msg === 'success.') {
+        text = res.result[0]
+      }
 
       /**************************/
       
