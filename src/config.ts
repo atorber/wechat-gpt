@@ -6,12 +6,12 @@ import fs from 'fs'
 
 const baseConfig = {
   "wechaty": {
-		"puppet": process.env['wechaty-puppet'] || "wechaty-puppet-wechat", //wechaty-puppet-xp、wechaty-puppet-padlocal、wechaty-puppet-service、wechaty-puppet-wechat、wechaty-puppet-wechat4u
-		"token": process.env['wechaty-token'] || "" //wechaty token
+		"puppet": process.env['wechaty_puppet'] || "wechaty-puppet-wechat", //wechaty-puppet-xp、wechaty-puppet-padlocal、wechaty-puppet-service、wechaty-puppet-wechat、wechaty-puppet-wechat4u
+		"token": process.env['wechaty_token'] || "" //wechaty token
 	},
 	"baiduvop": {
-		"ak": process.env['baiduvop-ak'] || "", //百度云语音转文字接口ak
-		"sk": process.env['baiduvop-sk'] || "" //百度云语音转文字接口sk
+		"ak": process.env['baiduvop_ak'] || "", //百度云语音转文字接口ak
+		"sk": process.env['baiduvop_sk'] || "" //百度云语音转文字接口sk
 	},
 }
 
