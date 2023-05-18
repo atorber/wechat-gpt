@@ -1,6 +1,11 @@
 # WechatGPT
 
-WechatGPT是一个使用微信充当ChatGPT对话窗口的工具，支持通过关键字指令设置key及接口调用参数，目前已支持openai、api2d接入。
+WechatGPT是一个使用微信充当ChatGPT对话窗口的工具,目前已实现的功能：
+
+- #指令 唤起操作指南
+- 支持通过关键字指令设置key及接口调用参数，目前已支持openai、api2d接入
+- 支持使用语音与gpt对话
+- 支持设置系统提醒词
 
 ## 启动项目
 
