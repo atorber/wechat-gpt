@@ -149,6 +149,10 @@ atorber/wechatgpt:v0.7.6
 
 特别提示，建议使用小号进行测试，以免因各种原因的导致主号被封给自己的生活带来不便
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=choogoo/wechatgpt&type=Date)](https://star-history.com/#choogoo/wechatgpt&Date)
+
 ## 更新日志
 
 v0.7.0
