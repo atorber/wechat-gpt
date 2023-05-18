@@ -99,7 +99,7 @@ brew install ffmpeg
 ```
 docker run -d 
 --restart=always 
---env wechaty_puppet="使用的puppet" 
+--env wechaty_puppet="wechaty-puppet-wechat4u" 
 --env wechaty_token="wehcaty token" 
 --env baiduvop_ak="百度语音转文字服务ak"
 --env baiduvop_ak="百度语音转文字服务sk"
