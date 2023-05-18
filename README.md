@@ -38,7 +38,7 @@ const baseConfig = {
 }
 ```
 
-## 安装语音转文字插件
+## 安装及启用语音转文字插件
 
 详细步骤参考 https://github.com/Ang-YC/wx-voice
 
@@ -92,6 +92,18 @@ Mac
 
 ```
 brew install ffmpeg
+```
+
+## Docker部署
+
+```
+docker run -d 
+--restart=always 
+--env wechaty_puppet="使用的puppet" 
+--env wechaty_token="wehcaty token" 
+--env baiduvop_ak="百度语音转文字服务ak"
+--env baiduvop_ak="百度语音转文字服务sk"
+atorber/wechatgpt:v0.7.6
 ```
 
 ## 机器人协议支持
