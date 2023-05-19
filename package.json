@@ -1,6 +1,6 @@
 {
   "name": "WechatGPT",
-  "version": "0.7.7",
+  "version": "0.8.0",
   "description": "wechat & chatgpt",
   "type": "module",
   "engines": {
@@ -37,7 +37,6 @@
     "wechaty-puppet-padlocal": "^1.20.1",
     "wechaty-puppet-wechat": "^1.18.4",
     "wechaty-puppet-wechat4u": "^1.13.15",
-    "wechaty-puppet-xp": "^1.12.7",
     "wx-voice": "^0.2.1",
     "xlsx": "^0.18.5"
   },

@@ -42,7 +42,12 @@ setInterval(() => {
 // log.info('config:', JSON.stringify(config, null, '\t'))
 
 function updateConfig (curId:string, curUserConfig:any) {
-  whiteList[curId] = curUserConfig
+  if (curUserConfig) {
+    whiteList[curId] = curUserConfig
+  } else {
+    delete whiteList[curId]
+    delete history[curId]
+  }
   config.whiteList = whiteList
   config.lastUpdate = new Date().toLocaleString()
 }
@@ -138,6 +143,23 @@ async function onMessage (msg: Message) {
     const curUserConfig = whiteList[curId] || undefined
     const curHistory = history[curId] || undefined
 
+    if (msg.talker().id === baseConfig.admin.wxid && text === '#开通'){
+      if (baseConfig.openai.key) {
+        text = `#绑定+${baseConfig.openai.key}+${baseConfig.openai.endpoint}`
+      } else {
+        await msg.say('智能助手未配置~')
+      }
+    }
+
+    if (msg.talker().id === baseConfig.admin.wxid && text === '#关闭'){
+      if (curUserConfig) {
+        updateConfig(curId, '')
+        await msg.say('你的智能助手已关闭~\n')
+      } else {
+        await msg.say('智能助手未开启~\n')
+      }
+    }
+
     if ((msg.type() === types.Message.Text || msg.type() === types.Message.Audio) && !msg.self()) {
       if (text[0] === '#') {
         const helpText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}\n\n${KeyWords.SystemPromptText}\n\n发送 ${KeyWords.ClearHistory} 清理历史消息\n\n发送 ${KeyWords.ExportFile} 可导出最近历史聊天记录为word文档`
@@ -172,7 +194,7 @@ async function onMessage (msg: Message) {
           const curUserConfig = getChatGPTConfig(textArr)
           rePly = await getChatGPTReply(curUserConfig, [ { content:'你能干什么？', role:'user' } ])
           if (rePly['role'] !== 'err') {
-            await msg.say('恭喜你配置成功，我是你的ChatGPT智能助手~\n\n' + rePly['content'])
+            await msg.say('恭喜你配置成功，我是你的智能助手~\n\n' + rePly['content'])
             history = storeHistory(history, curId, 'user', '你能干什么？')
             history = storeHistory(history, curId, rePly.role, rePly.content)
             updateConfig(curId, curUserConfig)
