@@ -118,7 +118,7 @@ docker run -d
 --env baiduvop_ak="百度语音转文字服务sk"
 --env admin_wxid="管理员微信ID"
 --env openai_key="你的openai api key"
-atorber/wechatgpt:v0.8.0
+atorber/wechatgpt:v0.8.1
 ```
 
 ## 机器人协议支持
