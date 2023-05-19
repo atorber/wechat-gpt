@@ -6,19 +6,19 @@ import fs from 'fs'
 
 const baseConfig = {
   admin:{
-    wxid: process.env['admin_wxid'] || '',
-    roomid: process.env['admin_roomid'] || '',
-  },
-  openai:{
-    key: process.env['openai_key'] || '',
-    endpoint: process.env['openai_endpoint'] || 'https://api.openai-proxy.com',
+    roomid: process.env['admin_roomid'] || '', // 管理群ID
+    wxid: process.env['admin_wxid'] || '', // 管理员微信ID
   },
   baiduvop: {
     ak: process.env['baiduvop_ak'] || '', // 百度云语音转文字接口ak
     sk: process.env['baiduvop_sk'] || '', // 百度云语音转文字接口sk
   },
+  openai:{
+    endpoint: process.env['openai_endpoint'] || 'https://api.openai-proxy.com', // openai api地址
+    key: process.env['openai_key'] || '', // openai api密钥
+  },
   wechaty: {
-    puppet: process.env['wechaty_puppet'] || 'wechaty-puppet-wechat4u', //wechaty-puppet-padlocal、wechaty-puppet-service、wechaty-puppet-wechat、wechaty-puppet-wechat4u、wechaty-puppet-xp（运行npm run wechaty-puppet-xp安装）
+    puppet: process.env['wechaty_puppet'] || 'wechaty-puppet-wechat4u', // wechaty-puppet-padlocal、wechaty-puppet-service、wechaty-puppet-wechat、wechaty-puppet-wechat4u、wechaty-puppet-xp（运行npm run wechaty-puppet-xp安装）
     token: process.env['wechaty_token'] || '', // wechaty token
   },
 }

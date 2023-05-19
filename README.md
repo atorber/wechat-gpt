@@ -32,14 +32,22 @@ npm start
 
 ```
 const baseConfig = {
-  "wechaty": {
-		"puppet": "wechaty-puppet-wechat", //可选puppet：wechaty-puppet-wechat、wechaty-puppet-wechat4u、wechaty-puppet-xp、wechaty-puppet-padlocal、wechaty-puppet-service
-		"token": "" //wechaty token
-	},
-	"baiduvop": {
-		"ak": "", //百度云语音转文字接口ak
-		"sk": "" //百度云语音转文字接口sk
-	},
+  admin:{
+    wxid: process.env['admin_wxid'] || '', //管理员微信ID
+    roomid: process.env['admin_roomid'] || '', //管理群ID
+  },
+  openai:{
+    key: process.env['openai_key'] || '', //openai api密钥
+    endpoint: process.env['openai_endpoint'] || 'https://api.openai-proxy.com', //openai api地址
+  },
+  baiduvop: {
+    ak: process.env['baiduvop_ak'] || '', // 百度云语音转文字接口ak
+    sk: process.env['baiduvop_sk'] || '', // 百度云语音转文字接口sk
+  },
+  wechaty: {
+    puppet: process.env['wechaty_puppet'] || 'wechaty-puppet-wechat4u', //wechaty-puppet-padlocal、wechaty-puppet-service、wechaty-puppet-wechat、wechaty-puppet-wechat4u、wechaty-puppet-xp（运行npm run wechaty-puppet-xp安装）
+    token: process.env['wechaty_token'] || '', // wechaty token
+  },
 }
 ```
 
@@ -108,7 +116,9 @@ docker run -d
 --env wechaty_token="wehcaty token" 
 --env baiduvop_ak="百度语音转文字服务ak"
 --env baiduvop_ak="百度语音转文字服务sk"
-atorber/wechatgpt:v0.7.6
+--env admin_wxid="管理员微信ID"
+--env openai_key="你的openai api key"
+atorber/wechatgpt:v0.8.0
 ```
 
 ## 机器人协议支持
@@ -154,6 +164,10 @@ atorber/wechatgpt:v0.7.6
 [![Star History Chart](https://api.star-history.com/svg?repos=choogoo/wechatgpt&type=Date)](https://star-history.com/#choogoo/wechatgpt&Date)
 
 ## 更新日志
+
+v0.8.0
+
+- 增加指令开通助手功能，管理员在群内发送 #开通 开启助手，发送 #关闭 关闭助手
 
 v0.7.0
 

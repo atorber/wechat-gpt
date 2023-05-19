@@ -121,16 +121,20 @@ async function onMessage (msg: Message) {
 
         /* 取消以下注释可以使用语音请求 */
 
-        const voiceFile = await msg.toFileBox()
-        const fileName = voiceFile.name
-        await voiceFile.toFile(fileName)
-        log.info('voice:', fileName)
-        const newFile = await convertSilkToWav(fileName)
-        log.info(newFile)
-        const res:any = await vop(newFile)
-        log.info('res:', JSON.stringify(res.result[0]))
-        if (res.err_msg === 'success.') {
-          text = res.result[0]
+        if (baseConfig.baiduvop.ak) {
+          const voiceFile = await msg.toFileBox()
+          const fileName = voiceFile.name
+          await voiceFile.toFile(fileName)
+          log.info('voice:', fileName)
+          const newFile = await convertSilkToWav(fileName)
+          log.info(newFile)
+          const res:any = await vop(newFile)
+          log.info('res:', JSON.stringify(res.result[0]))
+          if (res.err_msg === 'success.') {
+            text = res.result[0]
+          }
+        } else {
+          log.info('baiduvop未配置')
         }
 
         /**************************/
@@ -143,7 +147,7 @@ async function onMessage (msg: Message) {
     const curUserConfig = whiteList[curId] || undefined
     const curHistory = history[curId] || undefined
 
-    if (msg.talker().id === baseConfig.admin.wxid && text === '#开通'){
+    if (msg.talker().id === baseConfig.admin.wxid && text === '#开通') {
       if (baseConfig.openai.key) {
         text = `#绑定+${baseConfig.openai.key}+${baseConfig.openai.endpoint}`
       } else {
@@ -151,7 +155,7 @@ async function onMessage (msg: Message) {
       }
     }
 
-    if (msg.talker().id === baseConfig.admin.wxid && text === '#关闭'){
+    if (msg.talker().id === baseConfig.admin.wxid && text === '#关闭') {
       if (curUserConfig) {
         updateConfig(curId, '')
         await msg.say('你的智能助手已关闭~\n')
