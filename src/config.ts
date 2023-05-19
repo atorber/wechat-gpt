@@ -23,15 +23,15 @@ const baseConfig = {
   },
 }
 
-const config:any = JSON.parse(fs.readFileSync('src/config.json', 'utf8'))
-const history:any = JSON.parse(fs.readFileSync('src/history.json', 'utf8'))
+const config:any = JSON.parse(fs.readFileSync('data/config.json', 'utf8'))
+const history:any = JSON.parse(fs.readFileSync('data/history.json', 'utf8'))
 
 function saveConfigFile (config:any) {
-  fs.writeFileSync('src/config.json', JSON.stringify(config, null, '\t'))
+  fs.writeFileSync('data/config.json', JSON.stringify(config, null, '\t'))
 }
 
 function updateHistory (history:any) {
-  fs.writeFileSync('src/history.json', JSON.stringify(history, null, '\t'))
+  fs.writeFileSync('data/history.json', JSON.stringify(history, null, '\t'))
 }
 
 function getConfig () {
