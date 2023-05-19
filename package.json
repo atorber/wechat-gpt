@@ -1,6 +1,6 @@
 {
   "name": "WechatGPT",
-  "version": "0.7.6",
+  "version": "0.7.7",
   "description": "wechat & chatgpt",
   "type": "module",
   "engines": {
@@ -42,6 +42,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@chatie/eslint-config": "^1.4.1",
     "@chatie/tsconfig": "^4.9.2",
     "@types/node": "^18.15.11",
     "@types/qrcode-terminal": "^0.12.0",
@@ -49,10 +50,5 @@
     "cross-env": "^7.0.3",
     "is-pr": "^2.0.0",
     "ts-node": "^10.9.1"
-  },
-  "git": {
-    "scripts": {
-      "pre-push": "npx git-scripts-pre-push"
-    }
   }
 }
