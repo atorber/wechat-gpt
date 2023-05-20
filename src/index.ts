@@ -106,6 +106,7 @@ async function onMessage (msg: Message) {
     let text = msg.text()
 
     let rePly:any = {}
+    let rePlyText:string = ''
     let curId = ''
 
     if (room) {
@@ -144,28 +145,65 @@ async function onMessage (msg: Message) {
       }
     }
 
-    const curUserConfig = whiteList[curId] || undefined
-    const curHistory = history[curId] || undefined
+    let curUserConfig = whiteList[curId] || undefined
+    let curHistory = history[curId] || undefined
+    let curContact: Contact | undefined
+    const isAdmin = msg.talker().id === baseConfig.admin.wxid || msg.self()
 
-    if (msg.talker().id === baseConfig.admin.wxid && text === '#开通') {
-      if (baseConfig.openai.key) {
-        text = `#绑定+${baseConfig.openai.key}+${baseConfig.openai.endpoint}`
-      } else {
-        await msg.say('智能助手未配置~')
-      }
-    }
-
-    if (msg.talker().id === baseConfig.admin.wxid && text === '#关闭') {
-      if (curUserConfig) {
-        updateConfig(curId, '')
-        await msg.say('你的智能助手已关闭~\n')
-      } else {
-        await msg.say('智能助手未开启~\n')
-      }
-    }
-
-    if ((msg.type() === types.Message.Text || msg.type() === types.Message.Audio) && !msg.self()) {
+    if ((msg.type() === types.Message.Text || msg.type() === types.Message.Audio)) {
       if (text[0] === '#') {
+        log.info('操作指令：', text)
+        let textArr = text.split('+')
+        if (isAdmin) {
+          if (!room) {
+            curId = msg.listener()?.id || ''
+            curHistory = history[curId] || undefined
+            curUserConfig = whiteList[curId] || undefined
+            curContact = await bot.Contact.find({ id:curId })
+          }
+          log.info('管理员操作，操作指令：', text)
+
+          if (text === '#关闭') {
+            if (curUserConfig) {
+              updateConfig(curId, '')
+              rePlyText = '你的智能助手已关闭~\n'
+            } else {
+              rePlyText = '智能助手未开启~\n'
+            }
+            if (room) {
+              await msg.say(rePlyText)
+            } else {
+              await curContact?.say(rePlyText)
+            }
+          }
+          if (textArr[0] === '#充值') {
+            if (curUserConfig && textArr.length === 2) {
+              const num = Number(textArr[1])
+              if (num) {
+                curUserConfig['quota'] = (curUserConfig['quota'] || 20) + num
+                updateConfig(curId, curUserConfig)
+                rePlyText = `已充值成功，当前剩余${curUserConfig['quota']}次`
+              } else {
+                rePlyText = '充值错误，请重新输入~'
+              }
+            } else {
+              rePlyText = '你还未开通服务，请联系管理员开通~'
+            }
+            if (room) {
+              await msg.say(rePlyText)
+            } else {
+              await curContact?.say(rePlyText)
+            }
+          }
+          if (text === '#开通') {
+            if (baseConfig.openai.key) {
+              text = `#绑定+${baseConfig.openai.key}+${baseConfig.openai.endpoint}`
+              textArr = text.split('+')
+            } else {
+              rePlyText = '智能助手未配置~'
+            }
+          }
+        }
         const helpText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}\n\n${KeyWords.SystemPromptText}\n\n发送 ${KeyWords.ClearHistory} 清理历史消息\n\n发送 ${KeyWords.ExportFile} 可导出最近历史聊天记录为word文档`
         switch (text) {
           case KeyWords.Help:
@@ -188,22 +226,33 @@ async function onMessage (msg: Message) {
               await msg.say('无需清理~')
             }
             break
+          case '#查询余额':
+            if (curUserConfig) {
+              await msg.say(`你的剩余对话次数为${curUserConfig['quota'] || 20}次`)
+            } else {
+              await msg.say('你还未开通服务，请联系管理员开通~')
+            }
+            break
           default:
-            log.info('不支持的指令')
+            log.info('不是系统操作指令')
         }
-        const textArr = text.split('+')
         log.info('textArr', textArr)
         if (textArr.length === 3 && textArr[0] === '#绑定') {
           log.info('textArr', textArr)
           const curUserConfig = getChatGPTConfig(textArr)
           rePly = await getChatGPTReply(curUserConfig, [ { content:'你能干什么？', role:'user' } ])
           if (rePly['role'] !== 'err') {
-            await msg.say('恭喜你配置成功，我是你的智能助手~\n\n' + rePly['content'])
+            rePlyText = '配置成功，我是你的智能助手~\n\n' + rePly['content']
             history = storeHistory(history, curId, 'user', '你能干什么？')
             history = storeHistory(history, curId, rePly.role, rePly.content)
             updateConfig(curId, curUserConfig)
           } else {
-            await msg.say('输入的配置信息有误或权限不足，请使用key请求api验证配置信息是否正确后重试')
+            rePlyText = '输入的配置信息有误或权限不足，请使用key请求api验证配置信息是否正确后重试'
+          }
+          if (room || !isAdmin) {
+            await msg.say(rePlyText)
+          } else {
+            await curContact?.say(rePlyText)
           }
         }
         if (textArr.length === 2 && textArr[0] === '#发散度') {
@@ -292,19 +341,30 @@ async function onMessage (msg: Message) {
           }
         }
       } else {
-        if (curUserConfig && text) {
-          history = storeHistory(history, curId, 'user', text)
-          const messages:any[] = history[curId].historyContext.slice(curUserConfig.historyContextNum * (-1))
-          if (curUserConfig.systemPrompt) {
-            messages.unshift({ content:curUserConfig.systemPrompt, role:'system' })
+        if (curUserConfig && text && !msg.self()) {
+          let quota = curUserConfig['quota'] || 100
+          if (quota > 0) {
+            history = storeHistory(history, curId, 'user', text)
+            const messages:any[] = history[curId].historyContext.slice(curUserConfig.historyContextNum * (-1))
+            if (curUserConfig.systemPrompt) {
+              messages.unshift({ content:curUserConfig.systemPrompt, role:'system' })
+            }
+            rePly = await getChatGPTReply(curUserConfig, messages)
+            await msg.say(rePly['content'])
+            if (rePly['role'] !== 'err') {
+              history = storeHistory(history, curId, rePly.role, rePly.content)
+              quota = quota - 1
+              curUserConfig['quota'] = quota
+              updateConfig(curId, curUserConfig)
+            } else {
+              history[curId].historyContext.pop()
+            }
           }
-          rePly = await getChatGPTReply(curUserConfig, messages)
-          await msg.say(rePly['content'])
-          if (rePly['role'] !== 'err') {
-            history = storeHistory(history, curId, rePly.role, rePly.content)
-          } else {
-            history[curId].historyContext.pop()
+
+          if (quota === 0) {
+            await msg.say('配额不足，请联系管理员充值')
           }
+
         } else {
           log.info('不在白名单内：', curId)
         }
@@ -329,6 +389,7 @@ switch (puppet) {
   case 'wechaty-puppet-service':// 企业版微信客户端
     ops.puppetOptions = { token }
     process.env['WECHATY_PUPPET_SERVICE_NO_TLS_INSECURE_CLIENT'] = 'true'
+    process.env['WECHATY_PUPPET_SERVICE_AUTHORITY'] = 'token-service-discovery-test.juzibot.com'
     break
   case 'wechaty-puppet-wechat4u':
     break
