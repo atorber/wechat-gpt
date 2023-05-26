@@ -51,6 +51,8 @@ const baseConfig = {
 }
 ```
 
+> 百度云语音转文字接口开通详见官网 [语音转文字](https://ai.baidu.com/tech/speech?track=b6d7c141cb9ed59bcbbc91553767924a6c41a067cf9e9572)
+
 ## 安装及启用语音转文字插件
 
 详细步骤参考 https://github.com/Ang-YC/wx-voice
@@ -118,7 +120,7 @@ docker run -d
 --env baiduvop_ak="百度语音转文字服务sk"
 --env admin_wxid="管理员微信ID"
 --env openai_key="你的openai api key"
-atorber/wechatgpt:v0.8.1
+atorber/wechatgpt:v0.8.2
 ```
 
 ## 机器人协议支持
@@ -164,6 +166,12 @@ atorber/wechatgpt:v0.8.1
 [![Star History Chart](https://api.star-history.com/svg?repos=choogoo/wechatgpt&type=Date)](https://star-history.com/#choogoo/wechatgpt&Date)
 
 ## 更新日志
+
+v0.8.1
+
+- 通过在群或好友私聊中发送 #开通 开通chatgpt聊天
+- #充值+1000 充值对话次数
+- 以及更多的指令操作功能
 
 v0.8.0
 
