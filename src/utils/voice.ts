@@ -2,59 +2,59 @@
  * Voice Utils
  */
 // @ts-ignore
-import WxVoice from "wx-voice";
+import WxVoice from 'wx-voice'
 import fs from 'fs'
 import {
-    log,
-  } from 'wechaty'
-import path from "path";
+  log,
+} from 'wechaty'
+import path from 'path'
 // import { exec } from "child_process";
 
-const voice = new WxVoice();
-const outputFolder = "output";
+const voice = new WxVoice()
+const outputFolder = 'output'
 
-voice.on("error", (err: any) => log.error('err:', err));
+voice.on('error', (err: any) => log.error('err:', err))
 
-function getTargetPath(filePath: string, ext: string) {
-    const fileName = path.basename(filePath);
-    const targetPath = path.resolve(
-        outputFolder,
-        fileName.replace(path.extname(filePath), ext)
-    );
-    return targetPath;
+function getTargetPath (filePath: string, ext: string) {
+  const fileName = path.basename(filePath)
+  const targetPath = path.resolve(
+    outputFolder,
+    fileName.replace(path.extname(filePath), ext),
+  )
+  return targetPath
 }
 
-export async function convertSilkToWav(filePath: string) {
-    log.info(filePath)
-    const targetPath = getTargetPath(filePath, ".wav");
-    log.info(outputFolder)
-    log.info(targetPath)
-    return new Promise<string>((resolve, reject) => {
-        voice.decode(
-            filePath,
-            targetPath,
-            {
-                format: "wav",
-            },
-            (file: any) => {
-                if (file) {
-                    // 异步删除文件
-fs.unlink(filePath, (err) => {
-    if (err) throw err;
-    console.log('已删除', filePath);
-  });
-                    resolve(
-                        path.join(
-                            outputFolder,
-                            path.relative(outputFolder, targetPath)
-                        )
-                    );
-                } else {
-                    reject(new Error("Failed to convert silk to wav"));
-                }
-            }
-        );
-    });
+export async function convertSilkToWav (filePath: string) {
+  log.info(filePath)
+  const targetPath = getTargetPath(filePath, '.wav')
+  log.info(outputFolder)
+  log.info(targetPath)
+  return new Promise<string>((resolve, reject) => {
+    voice.decode(
+      filePath,
+      targetPath,
+      {
+        format: 'wav',
+      },
+      (file: any) => {
+        if (file) {
+          // 异步删除文件
+          fs.unlink(filePath, (err) => {
+            if (err) throw err
+            // console.log('已删除', filePath)
+          })
+          resolve(
+            path.join(
+              outputFolder,
+              path.relative(outputFolder, targetPath),
+            ),
+          )
+        } else {
+          reject(new Error('Failed to convert silk to wav'))
+        }
+      },
+    )
+  })
 }
 
 // export async function convertOgaToWay(filePath: string): Promise<string> {
@@ -79,14 +79,14 @@ fs.unlink(filePath, (err) => {
 //     });
 // }
 
-export async function getDuration(filePath: string) {
-    return new Promise<number>((resolve, reject) => {
-        voice.duration(filePath, (duration: number) => {
-            if (duration) {
-                resolve(duration);
-            } else {
-                reject(new Error("Failed to get duration"));
-            }
-        });
-    });
+export async function getDuration (filePath: string) {
+  return new Promise<number>((resolve, reject) => {
+    voice.duration(filePath, (duration: number) => {
+      if (duration) {
+        resolve(duration)
+      } else {
+        reject(new Error('Failed to get duration'))
+      }
+    })
+  })
 }

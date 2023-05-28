@@ -9,6 +9,7 @@
       "tests/fixtures/"
     ],
     "include": [
-      "src/**/*.ts"
+      "src/*/*.ts",
+      "src/*.ts"
     ],
   }
