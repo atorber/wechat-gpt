@@ -3,7 +3,7 @@
 import 'dotenv/config.js'
 import { Contact, Message, ScanStatus, types, WechatyBuilder, log, Room } from 'wechaty'
 import qrcodeTerminal from 'qrcode-terminal'
-import { baseConfig, getConfig, getHistory, saveConfigFile, updateHistory, getChatGPTConfig, storeHistory } from './config.js'
+import { baseConfig, getConfig, getHistory, getTalk, getRecord, saveConfigFile, updateHistory, updateRecord, updateTalk, getChatGPTConfig, storeHistory } from './config.js'
 import { getChatGPTReply } from './chatgpt.js'
 import { FileBox } from 'file-box'
 import htmlToDocx from 'html-to-docx'
@@ -30,77 +30,9 @@ const config = getConfig()
 const whiteList = config.whiteList
 let history = getHistory()
 let webClient: any
-const recordsDir: {[key:string]:any[]} = {
-  4257:[
-    {
-      id: 3209,
-      sequence: 1169,
-      msg_id: 'c08c42a5a59d4add8bd69c65e7230359',
-      talk_type: 1,
-      msg_type: 10,
-      user_id: 4257,
-      receiver_id: 2054,
-      nickname: '登录助手',
-      avatar: 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-      is_revoke: 0,
-      is_mark: 0,
-      is_read: 1,
-      content: '',
-      created_at: '2023-05-27 12:42:08',
-      extra: {
-        address: '中国 福建省 泉州市 移动',
-        agent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_7_1 like Mac OS X; zh-cn) AppleWebKit/601.1.46 (KHTML, like Gecko) Mobile/19H117 Quark/6.3.0.1675 Mobile',
-        datetime: '2023-05-27 12:42:08',
-        ip: '112.47.102.69',
-        platform: 'web',
-        reason: '常用设备登录',
-      },
-    },
-    {
-      id: 3169,
-      sequence: 1142,
-      msg_id: '72fa11e381814b87b66fd45aaae12073',
-      talk_type: 1,
-      msg_type: 10,
-      user_id: 4257,
-      receiver_id: 2054,
-      nickname: '登录助手',
-      avatar: 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-      is_revoke: 0,
-      is_mark: 0,
-      is_read: 1,
-      content: '',
-      created_at: '2023-05-26 17:31:14',
-      extra: {
-        address: '中国 四川省 成都市 电信',
-        agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/113.0',
-        datetime: '2023-05-26 17:31:14',
-        ip: '182.148.48.134',
-        platform: 'web',
-        reason: '常用设备登录',
-      },
-    },
-  ],
-}
+const recordsDir: {[key:string]:any[]} = getRecord()
 
-const chats:{[key:string]:any} = {
-  4257:{
-    avatar: 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-    id: 146,
-    agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
-    is_disturb: 0,
-    is_online: 0,
-    is_robot: 1,
-    is_top: 0,
-    msg_text: '[登录消息]',
-    name: '登录助手',
-    receiver_id: 4257,
-    remark_name: '',
-    talk_type: 1,
-    unread_num: 1,
-    updated_at: '2023-05-26 09:48:22',
-  },
-}
+const chats:{[key:string]:any} = getTalk()
 
 async function updateChats (message:Message) {
   const talker = message.talker()
@@ -402,6 +334,8 @@ setInterval(() => {
   config.lastSave = new Date().toLocaleString()
   saveConfigFile(config)
   updateHistory(history)
+  updateRecord(recordsDir)
+  updateTalk(chats)
   // log.info('配置已保存')
 }, 3000)
 

@@ -1,0 +1,18 @@
+{
+    "4257": {
+      "avatar": "https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png",
+      "id": 146,
+      "agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
+      "is_disturb": 0,
+      "is_online": 0,
+      "is_robot": 1,
+      "is_top": 0,
+      "msg_text": "[登录消息]",
+      "name": "登录助手",
+      "receiver_id": 4257,
+      "remark_name": "",
+      "talk_type": 1,
+      "unread_num": 1,
+      "updated_at": "2023-05-26 09:48:22"
+    }
+  }

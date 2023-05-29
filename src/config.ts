@@ -25,6 +25,8 @@ const baseConfig = {
 
 const config:any = JSON.parse(fs.readFileSync('data/config.json', 'utf8'))
 const history:any = JSON.parse(fs.readFileSync('data/history.json', 'utf8'))
+const talk:any = JSON.parse(fs.readFileSync('data/talk.json', 'utf8'))
+const record:any = JSON.parse(fs.readFileSync('data/record.json', 'utf8'))
 
 function saveConfigFile (config:any) {
   fs.writeFileSync('data/config.json', JSON.stringify(config, null, '\t'))
@@ -34,12 +36,28 @@ function updateHistory (history:any) {
   fs.writeFileSync('data/history.json', JSON.stringify(history, null, '\t'))
 }
 
+function updateRecord (record:any) {
+  fs.writeFileSync('data/record.json', JSON.stringify(record, null, '\t'))
+}
+
+function updateTalk (talk:any) {
+  fs.writeFileSync('data/talk.json', JSON.stringify(talk, null, '\t'))
+}
+
 function getConfig () {
   return config
 }
 
 function getHistory () {
   return history
+}
+
+function getTalk () {
+  return talk
+}
+
+function getRecord () {
+  return record
 }
 
 function getChatGPTConfig (textArr: string[]) {
@@ -76,4 +94,4 @@ function storeHistory (history:any, id:string, role:string, content:string) {
 
 }
 
-export { getConfig, getHistory, saveConfigFile, updateHistory, getChatGPTConfig, storeHistory, baseConfig }
+export { getConfig, getHistory, getTalk, getRecord, saveConfigFile, updateHistory, updateRecord, updateTalk, getChatGPTConfig, storeHistory, baseConfig }
