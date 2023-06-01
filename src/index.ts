@@ -3,7 +3,7 @@
 import 'dotenv/config.js'
 import { Contact, Message, ScanStatus, types, WechatyBuilder, log, Room } from 'wechaty'
 import qrcodeTerminal from 'qrcode-terminal'
-import { baseConfig, getConfig, getHistory, getTalk, getRecord, saveConfigFile, updateHistory, updateRecord, updateTalk, getChatGPTConfig, storeHistory } from './config.js'
+import { baseConfig, getConfig, getHistory, getTalk, getRecord, saveConfigFile, updateHistory, updateRecord, updateTalk, updateData, getChatGPTConfig, storeHistory } from './config.js'
 import { getChatGPTReply } from './chatgpt.js'
 import { FileBox } from 'file-box'
 import htmlToDocx from 'html-to-docx'
@@ -29,6 +29,8 @@ import websockify from 'koa-websocket'
 const config = getConfig()
 const whiteList = config.whiteList
 let history = getHistory()
+let contactList: any[] = []
+let roomList: any[] = []
 let webClient: any
 const recordsDir: {[key:string]:any[]} = getRecord()
 
@@ -55,14 +57,7 @@ async function updateChats (message:Message) {
     is_read: 1,
     content: text,
     created_at: getCurrentFormattedDate(),
-    extra: {
-      address: '中国 广东省 深圳市 电信',
-      agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
-      datetime: getCurrentFormattedDate(),
-      ip: '183.14.132.181',
-      platform: 'web',
-      reason: '常用设备登录',
-    },
+    extra: {},
   }
 
   if (room) {
@@ -336,6 +331,8 @@ setInterval(() => {
   updateHistory(history)
   updateRecord(recordsDir)
   updateTalk(chats)
+  updateData(contactList, 'contactList')
+  updateData(roomList, 'roomList')
   // log.info('配置已保存')
 }, 3000)
 
@@ -422,7 +419,7 @@ async function onMessage (msg: Message) {
 
         /* 取消以下注释可以使用语音请求 */
 
-        if (baseConfig.baiduvop.ak) {
+        if (baseConfig.baiduvop.value.ak.value) {
           const voiceFile = await msg.toFileBox()
           const fileName = voiceFile.name
           await voiceFile.toFile(fileName)
@@ -448,7 +445,7 @@ async function onMessage (msg: Message) {
     let curUserConfig = whiteList[curId] || undefined
     let curHistory = history[curId] || undefined
     let curContact: Contact | undefined
-    const isAdmin = msg.talker().id === baseConfig.admin.wxid || msg.self()
+    const isAdmin = msg.talker().id === baseConfig.admin.value.wxid.value || msg.self()
 
     if ((msg.type() === types.Message.Text || msg.type() === types.Message.Audio)) {
       if (text[0] === '#') {
@@ -496,8 +493,8 @@ async function onMessage (msg: Message) {
             }
           }
           if (text === '#开通') {
-            if (baseConfig.openai.key) {
-              text = `#绑定+${baseConfig.openai.key}+${baseConfig.openai.endpoint}`
+            if (baseConfig.openai.value.key.value) {
+              text = `#绑定+${baseConfig.openai.value.key.value}+${baseConfig.openai.value.endpoint.value}`
               textArr = text.split('+')
             } else {
               rePlyText = '智能助手未配置~'
@@ -679,11 +676,11 @@ async function onMessage (msg: Message) {
 // 构建机器人
 const ops: any = {
   name: 'WechatGPT',
-  puppet: baseConfig.wechaty.puppet,
+  puppet: baseConfig.wechaty.value.puppet.value,
 } // 默认web版微信客户端
 
-const token = baseConfig.wechaty.token
-const puppet = baseConfig.wechaty.puppet
+const token = baseConfig.wechaty.value.token.value
+const puppet = baseConfig.wechaty.value.puppet.value
 log.info('puppet:', puppet)
 switch (puppet) {
   case 'wechaty-puppet-service':// 企业版微信客户端
@@ -849,6 +846,7 @@ async function authenticateUser (mobile:string, password:string) {
 // 获取联系人列表
 router.get('/api/v1/contact/list', async (ctx: any) => {
   const newContacts: NewContact[] = await getAllContacts()
+  contactList = newContacts
   const response = {
     code: 200,
     data: {
@@ -863,6 +861,7 @@ router.get('/api/v1/contact/list', async (ctx: any) => {
 // 获取群列表
 router.get('/api/v1/group/list', async (ctx: any) => {
   const newRooms: NewRoom[] = await getAllRooms()
+  roomList = newRooms
   const response = {
     code: 200,
     data: {

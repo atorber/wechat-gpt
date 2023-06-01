@@ -28,23 +28,59 @@ type ChatData = {
     };
 };
 
-type BaseConfig = {
+  type BaseConfig = {
     admin: {
-      roomid: string;
-      wxid: string;
-    },
+      name: string;
+      value: {
+        roomid: {
+          name: string;
+          value: string;
+        };
+        wxid: {
+          name: string;
+          value: string;
+        };
+      };
+    };
     baiduvop: {
-      ak: string;
-      sk: string;
-    },
+      name: string;
+      value: {
+        ak: {
+          name: string;
+          value: string;
+        };
+        sk: {
+          name: string;
+          value: string;
+        };
+      };
+    };
     openai: {
-      endpoint: string;
-      key: string;
-    },
+      name: string;
+      value: {
+        endpoint: {
+          name: string;
+          value: string;
+        };
+        key: {
+          name: string;
+          value: string;
+        };
+      };
+    };
     wechaty: {
-      puppet: string;
-      token: string;
-    },
+      name: string;
+      value: {
+        puppet: {
+          name: string;
+          value: string;
+        };
+        token: {
+          name: string;
+          value: string;
+        };
+      };
+    };
   };
 
 export {

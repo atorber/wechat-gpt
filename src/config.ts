@@ -3,23 +3,64 @@
 修改config.json配置文件，即修改api配置
 */
 import fs from 'fs'
+import type { BaseConfig, ChatData, WhiteList } from './types/mod.js'
 
-const baseConfig = {
+const baseConfig:BaseConfig = {
   admin:{
-    roomid: process.env['admin_roomid'] || '', // 管理群ID
-    wxid: process.env['admin_wxid'] || '', // 管理员微信ID
+    name:'管理员信息',
+    value:{
+      roomid: {
+        name:'管理员群ID',
+        value:process.env['admin_roomid'] || '', // 管理群ID
+      },
+      wxid: {
+        name:'管理员微信ID',
+        value:process.env['admin_wxid'] || '', // 管理员微信ID
+      },
+    },
   },
   baiduvop: {
-    ak: process.env['baiduvop_ak'] || '', // 百度云语音转文字接口ak
-    sk: process.env['baiduvop_sk'] || '', // 百度云语音转文字接口sk
+    name: '百度云语音转文字服务',
+    value:{
+      ak: {
+        name:'Access Key',
+        value:process.env['baiduvop_ak'] || '', // 百度云语音转文字接口ak
+      },
+      sk: {
+        name:'Secret Key',
+        value:process.env['baiduvop_sk'] || '', // 百度云语音转文字接口sk
+      },
+    },
+
   },
   openai:{
-    endpoint: process.env['openai_endpoint'] || 'https://api.openai-proxy.com', // openai api地址
-    key: process.env['openai_key'] || '', // openai api密钥
+    name:'ChatGPT配置信息',
+    value:{
+      endpoint: {
+        name:'API地址',
+        value:process.env['openai_endpoint'] || 'https://api.openai-proxy.com', // openai api地址
+      },
+      key: {
+        name:'API密钥',
+        value:process.env['openai_key'] || '', // openai api密钥
+      },
+
+    },
+
   },
   wechaty: {
-    puppet: process.env['wechaty_puppet'] || 'wechaty-puppet-wechat4u', // wechaty-puppet-padlocal、wechaty-puppet-service、wechaty-puppet-wechat、wechaty-puppet-wechat4u、wechaty-puppet-xp（运行npm run wechaty-puppet-xp安装）
-    token: process.env['wechaty_token'] || '', // wechaty token
+    name:'Wechaty',
+    value:{
+      puppet: {
+        name:'Puppet名称',
+        value:process.env['wechaty_puppet'] || 'wechaty-puppet-wechat4u', // wechaty-puppet-padlocal、wechaty-puppet-service、wechaty-puppet-wechat、wechaty-puppet-wechat4u、wechaty-puppet-xp（运行npm run wechaty-puppet-xp安装）
+      },
+      token:{
+        name:'PuppetToken',
+        value: process.env['wechaty_token'] || '', // wechaty token
+      },
+    },
+
   },
 }
 
@@ -28,11 +69,11 @@ const history:any = JSON.parse(fs.readFileSync('data/history.json', 'utf8'))
 const talk:any = JSON.parse(fs.readFileSync('data/talk.json', 'utf8'))
 const record:any = JSON.parse(fs.readFileSync('data/record.json', 'utf8'))
 
-function saveConfigFile (config:any) {
+function saveConfigFile (config:WhiteList) {
   fs.writeFileSync('data/config.json', JSON.stringify(config, null, '\t'))
 }
 
-function updateHistory (history:any) {
+function updateHistory (history:ChatData) {
   fs.writeFileSync('data/history.json', JSON.stringify(history, null, '\t'))
 }
 
@@ -42,6 +83,10 @@ function updateRecord (record:any) {
 
 function updateTalk (talk:any) {
   fs.writeFileSync('data/talk.json', JSON.stringify(talk, null, '\t'))
+}
+
+function updateData (data:any, filename:string) {
+  fs.writeFileSync(`data/${filename}.json`, JSON.stringify(data, null, '\t'))
 }
 
 function getConfig () {
@@ -77,21 +122,34 @@ function getChatGPTConfig (textArr: string[]) {
 
 }
 
-function storeHistory (history:any, id:string, role:string, content:string) {
+function storeHistory (history:ChatData, id:string, role:'user' | 'assistant' | 'system', content:string) {
 
   if (history[id]) {
-    history[id].historyContext.push({ content, role })
-    history[id].time.push(new Date().toLocaleString())
+    history[id]?.historyContext.push({ content, role })
+    history[id]?.time.push(new Date().toLocaleString())
   } else {
     history[id] = {
       historyContext: [],
       time: [],
     }
-    history[id].historyContext.push({ content, role })
-    history[id].time.push(new Date().toLocaleString())
+    history[id]?.historyContext.push({ content, role })
+    history[id]?.time.push(new Date().toLocaleString())
   }
   return history
 
 }
 
-export { getConfig, getHistory, getTalk, getRecord, saveConfigFile, updateHistory, updateRecord, updateTalk, getChatGPTConfig, storeHistory, baseConfig }
+export {
+  getConfig,
+  getHistory,
+  getTalk,
+  getRecord,
+  saveConfigFile,
+  updateHistory,
+  updateRecord,
+  updateTalk,
+  updateData,
+  getChatGPTConfig,
+  storeHistory,
+  baseConfig,
+}
