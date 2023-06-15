@@ -419,7 +419,7 @@ async function onMessage (msg: Message) {
 
         /* 取消以下注释可以使用语音请求 */
 
-        if (baseConfig.baiduvop.value.ak.value) {
+        if (baseConfig.baiduvop.items.ak.value) {
           const voiceFile = await msg.toFileBox()
           const fileName = voiceFile.name
           await voiceFile.toFile(fileName)
@@ -445,7 +445,7 @@ async function onMessage (msg: Message) {
     let curUserConfig = whiteList[curId] || undefined
     let curHistory = history[curId] || undefined
     let curContact: Contact | undefined
-    const isAdmin = msg.talker().id === baseConfig.admin.value.wxid.value || msg.self()
+    const isAdmin = msg.talker().id === baseConfig.admin.items.wxid.value || msg.self()
 
     if ((msg.type() === types.Message.Text || msg.type() === types.Message.Audio)) {
       if (text[0] === '#') {
@@ -493,8 +493,8 @@ async function onMessage (msg: Message) {
             }
           }
           if (text === '#开通') {
-            if (baseConfig.openai.value.key.value) {
-              text = `#绑定+${baseConfig.openai.value.key.value}+${baseConfig.openai.value.endpoint.value}`
+            if (baseConfig.openai.items.key.value) {
+              text = `#绑定+${baseConfig.openai.items.key.value}+${baseConfig.openai.items.endpoint.value}`
               textArr = text.split('+')
             } else {
               rePlyText = '智能助手未配置~'
@@ -676,11 +676,11 @@ async function onMessage (msg: Message) {
 // 构建机器人
 const ops: any = {
   name: 'WechatGPT',
-  puppet: baseConfig.wechaty.value.puppet.value,
+  puppet: baseConfig.wechaty.items.puppet.value,
 } // 默认web版微信客户端
 
-const token = baseConfig.wechaty.value.token.value
-const puppet = baseConfig.wechaty.value.puppet.value
+const token = baseConfig.wechaty.items.token.value
+const puppet = baseConfig.wechaty.items.puppet.value
 log.info('puppet:', puppet)
 switch (puppet) {
   case 'wechaty-puppet-service':// 企业版微信客户端
@@ -1326,7 +1326,11 @@ function validateToken (token: string) {
     return false
   }
 }
+
+// @ts-ignore
 appWs.ws.use(routerWs.routes())
+
+// @ts-ignore
 appWs.ws.use(routerWs.allowedMethods())
 
 appWs.listen(9504, () => {

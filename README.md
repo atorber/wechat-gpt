@@ -9,6 +9,8 @@ WechatGPT是一个使用微信充当ChatGPT对话窗口的工具,目前已实现
 
 ## 启动项目
 
+> 首先重命名src/config.ts.example为config.ts
+
 1.安装依赖及启动
 
 ```
@@ -31,22 +33,62 @@ npm start
 修改配置文件可更换puppet及配置百度云语音转文字接口ak、sk
 
 ```
-const baseConfig = {
+const baseConfig:BaseConfig = {
   admin:{
-    wxid: process.env['admin_wxid'] || '', //管理员微信ID
-    roomid: process.env['admin_roomid'] || '', //管理群ID
-  },
-  openai:{
-    key: process.env['openai_key'] || '', //openai api密钥
-    endpoint: process.env['openai_endpoint'] || 'https://api.openai-proxy.com', //openai api地址
+    name:'管理员信息',
+    items:{
+      roomid: {
+        name:'管理员群ID',
+        value:process.env['admin_roomid'] || '', // 管理群ID
+      },
+      wxid: {
+        name:'管理员微信ID',
+        value:process.env['admin_wxid'] || '', // 管理员微信ID
+      },
+    },
   },
   baiduvop: {
-    ak: process.env['baiduvop_ak'] || '', // 百度云语音转文字接口ak
-    sk: process.env['baiduvop_sk'] || '', // 百度云语音转文字接口sk
+    name: '百度云语音转文字服务',
+    items:{
+      ak: {
+        name:'Access Key',
+        value:process.env['baiduvop_ak'] || '', // 百度云语音转文字接口ak
+      },
+      sk: {
+        name:'Secret Key',
+        value:process.env['baiduvop_sk'] || '', // 百度云语音转文字接口sk
+      },
+    },
+
+  },
+  openai:{
+    name:'ChatGPT配置信息',
+    items:{
+      endpoint: {
+        name:'API地址',
+        value:process.env['openai_endpoint'] || 'https://api.openai-proxy.com', // openai api地址
+      },
+      key: {
+        name:'API密钥',
+        value:process.env['openai_key'] || '', // openai api密钥
+      },
+
+    },
+
   },
   wechaty: {
-    puppet: process.env['wechaty_puppet'] || 'wechaty-puppet-wechat4u', //wechaty-puppet-padlocal、wechaty-puppet-service、wechaty-puppet-wechat、wechaty-puppet-wechat4u、wechaty-puppet-xp（运行npm run wechaty-puppet-xp安装）
-    token: process.env['wechaty_token'] || '', // wechaty token
+    name:'Wechaty',
+    items:{
+      puppet: {
+        name:'Puppet名称',
+        value:process.env['wechaty_puppet'] || 'wechaty-puppet-wechat', // wechaty-puppet-padlocal、wechaty-puppet-service、wechaty-puppet-wechat、wechaty-puppet-wechat4u、wechaty-puppet-xp（运行npm run wechaty-puppet-xp安装）
+      },
+      token:{
+        name:'PuppetToken',
+        value: process.env['wechaty_token'] || '', // wechaty token
+      },
+    },
+
   },
 }
 ```

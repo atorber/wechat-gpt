@@ -31,7 +31,7 @@ type ChatData = {
   type BaseConfig = {
     admin: {
       name: string;
-      value: {
+      items: {
         roomid: {
           name: string;
           value: string;
@@ -44,7 +44,7 @@ type ChatData = {
     };
     baiduvop: {
       name: string;
-      value: {
+      items: {
         ak: {
           name: string;
           value: string;
@@ -57,7 +57,7 @@ type ChatData = {
     };
     openai: {
       name: string;
-      value: {
+      items: {
         endpoint: {
           name: string;
           value: string;
@@ -70,7 +70,7 @@ type ChatData = {
     };
     wechaty: {
       name: string;
-      value: {
+      items: {
         puppet: {
           name: string;
           value: string;

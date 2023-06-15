@@ -7,8 +7,8 @@ import {
 } from 'wechaty'
 import { baseConfig } from '../config.js'
 
-const AK = baseConfig.baiduvop.ak
-const SK = baseConfig.baiduvop.sk
+const AK = baseConfig.baiduvop.items.ak.value
+const SK = baseConfig.baiduvop.items.sk.value
 
 export async function vop (path:string) {
   const speech:string = getFileContentAsBase64(path)
