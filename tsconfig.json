@@ -6,7 +6,8 @@
     "exclude": [
       "node_modules/",
       "dist/",
-      "tests/fixtures/"
+      "tests/fixtures/",
+      "src/config.ts.example"
     ],
     "include": [
       "src/*/*.ts",
