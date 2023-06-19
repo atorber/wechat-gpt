@@ -47,20 +47,6 @@ const baseConfig:BaseConfig = {
       },
     },
   },
-  baiduvop: {
-    name: '百度云语音转文字服务',
-    items:{
-      ak: {
-        name:'Access Key',
-        value:process.env['baiduvop_ak'] || '', // 百度云语音转文字接口ak
-      },
-      sk: {
-        name:'Secret Key',
-        value:process.env['baiduvop_sk'] || '', // 百度云语音转文字接口sk
-      },
-    },
-
-  },
   openai:{
     name:'ChatGPT配置信息',
     items:{
@@ -91,78 +77,6 @@ const baseConfig:BaseConfig = {
 
   },
 }
-```
-
-> 百度云语音转文字接口开通详见官网 [语音转文字](https://ai.baidu.com/tech/speech?track=b6d7c141cb9ed59bcbbc91553767924a6c41a067cf9e9572)
-
-## 安装及启用语音转文字插件
-
-详细步骤参考 https://github.com/Ang-YC/wx-voice
-
-> 成功安装插件后可在index.ts中解除注释，使用语音与gpt聊天问答
-
-1. 安装依赖
-
-```
-npm install wx-voice --save
-npm install wx-voice -g
-wx-voice compile
-```
-
-2. 安装ffmpeg（Windows操作系统安装方式及环境变量设置自行百度）
-
-Ubuntu
-
-```
-sudo add-apt-repository ppa:mc3man/trusty-media  
-sudo apt-get update  
-sudo apt-get install ffmpeg
-```
-
-CentOS
-
-```
-sudo yum install epel-release
-sudo yum update
-sudo rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro
-```
-
-For CentOS 7:
-
-```
-sudo rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-5.el7.nux.noarch.rpm
-```
-
-For CentOS 6:
-
-```
-sudo rpm -Uvh http://li.nux.ro/download/nux/dextop/el6/x86_64/nux-dextop-release-0-2.el6.nux.noarch.rpm
-```
-
-Install FFMPEG:
-
-```
-sudo yum install ffmpeg
-```
-
-Mac
-
-```
-brew install ffmpeg
-```
-
-## Docker部署
-
-```
-docker run -d 
---restart=always 
---env wechaty_puppet="wechaty-puppet-wechat4u" 
---env wechaty_token="wehcaty token" 
---env baiduvop_ak="百度语音转文字服务ak"
---env baiduvop_ak="百度语音转文字服务sk"
---env admin_wxid="管理员微信ID"
---env openai_key="你的openai api key"
-atorber/wechatgpt:v0.8.2
 ```
 
 ## 机器人协议支持

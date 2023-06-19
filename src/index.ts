@@ -11,13 +11,6 @@ import { getCurrentFormattedDate } from './utils/mod.js'
 import type { SendTextRequest } from './types/mod.js'
 import { v4 as uuidv4 } from 'uuid'
 
-/* 将以下两行取消注释可以使用语音请求 */
-
-import { convertSilkToWav } from './utils/voice.js'
-import { vop } from './utils/baiduai.js'
-
-/*******************************/
-
 // import Koa from 'koa'
 // import Router from 'koa-router'
 import Koa, { DefaultState, DefaultContext } from 'koa'
@@ -412,35 +405,6 @@ async function onMessage (msg: Message) {
       curId = talker.id
     }
     log.info('curId', curId)
-
-    if (msg.type() === types.Message.Audio) {
-      try {
-        text = ''
-
-        /* 取消以下注释可以使用语音请求 */
-
-        if (baseConfig.baiduvop.items.ak.value) {
-          const voiceFile = await msg.toFileBox()
-          const fileName = voiceFile.name
-          await voiceFile.toFile(fileName)
-          log.info('voice:', fileName)
-          const newFile = await convertSilkToWav(fileName)
-          log.info(newFile)
-          const res:any = await vop(newFile)
-          log.info('res:', JSON.stringify(res.result[0]))
-          if (res.err_msg === 'success.') {
-            text = res.result[0]
-          }
-        } else {
-          log.info('baiduvop未配置')
-        }
-
-        /**************************/
-
-      } catch (err) {
-        log.error('err:', err)
-      }
-    }
 
     let curUserConfig = whiteList[curId] || undefined
     let curHistory = history[curId] || undefined

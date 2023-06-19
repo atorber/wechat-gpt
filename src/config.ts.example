@@ -20,20 +20,6 @@ const baseConfig:BaseConfig = {
       },
     },
   },
-  baiduvop: {
-    name: '百度云语音转文字服务',
-    items:{
-      ak: {
-        name:'Access Key',
-        value:process.env['baiduvop_ak'] || '', // 百度云语音转文字接口ak
-      },
-      sk: {
-        name:'Secret Key',
-        value:process.env['baiduvop_sk'] || '', // 百度云语音转文字接口sk
-      },
-    },
-
-  },
   openai:{
     name:'ChatGPT配置信息',
     items:{
