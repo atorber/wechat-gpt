@@ -1,5 +1,4 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
-// @ts-nocheck
 /* eslint-disable sort-keys */
 /*
 修改config.json配置文件，即修改api配置
