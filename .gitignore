@@ -129,5 +129,10 @@ dist
 .yarn/install-state.gz
 .pnp.*
 package-lock.json
-src/config.ts
 .DS_Store
+data/config.json
+data/contactList.json
+data/history.json
+data/record.json
+data/roomList.json
+data/talk.json

@@ -12,11 +12,11 @@ const baseConfig:BaseConfig = {
     items:{
       roomid: {
         name:'管理员群ID',
-        value:process.env['admin_roomid'] || '', // 管理群ID
+        value:process.env['ADMIN_ROOMID'] || '', // 管理群ID
       },
       wxid: {
         name:'管理员微信ID',
-        value:process.env['admin_wxid'] || '', // 管理员微信ID
+        value:process.env['ADMIN_WXID'] || '', // 管理员微信ID
       },
     },
   },
@@ -25,11 +25,11 @@ const baseConfig:BaseConfig = {
     items:{
       ak: {
         name:'Access Key',
-        value:process.env['baiduvop_ak'] || '', // 百度云语音转文字接口ak
+        value:process.env['BAIDUVOP_AK'] || '', // 百度云语音转文字接口ak
       },
       sk: {
         name:'Secret Key',
-        value:process.env['baiduvop_sk'] || '', // 百度云语音转文字接口sk
+        value:process.env['BAIDUVOP_SK'] || '', // 百度云语音转文字接口sk
       },
     },
 
@@ -39,11 +39,11 @@ const baseConfig:BaseConfig = {
     items:{
       endpoint: {
         name:'API地址',
-        value:process.env['openai_endpoint'] || 'https://api.openai-proxy.com', // openai api地址
+        value:process.env['OPENAI_ENDPOINT'] || 'https://api.openai.com', // openai api地址
       },
       key: {
         name:'API密钥',
-        value:process.env['openai_key'] || '', // openai api密钥
+        value:process.env['OPENAI_API_KEY'] || '', // openai api密钥
       },
 
     },
@@ -54,11 +54,11 @@ const baseConfig:BaseConfig = {
     items:{
       puppet: {
         name:'Puppet名称',
-        value:process.env['wechaty_puppet'] || 'wechaty-puppet-wechat', // wechaty-puppet-padlocal、wechaty-puppet-service、wechaty-puppet-wechat、wechaty-puppet-wechat4u、wechaty-puppet-xp（运行npm run wechaty-puppet-xp安装）
+        value:process.env['WECHATY_PUPPET'] || 'wechaty-puppet-wechat4u', // wechaty-puppet-padlocal、wechaty-puppet-service、wechaty-puppet-wechat、wechaty-puppet-wechat4u、wechaty-puppet-xp（运行npm run wechaty-puppet-xp安装）
       },
       token:{
         name:'PuppetToken',
-        value: process.env['wechaty_token'] || '', // wechaty token
+        value: process.env['WECHATY_TOKEN'] || '', // wechaty token
       },
     },
 

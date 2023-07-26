@@ -110,7 +110,9 @@ async function updateChats (message:Message) {
     curMsg.sequence = records.length
     records.push(curMsg)
     recordsDir[room.id] = records
-    webClient.websocket.send(JSON.stringify(newMessage))
+    if (webClient) {
+      webClient.websocket.send(JSON.stringify(newMessage))
+    }
   } else {
     const records:any[] = recordsDir[talker.id] || []
     const chatId = `1_${talker.id}`
@@ -161,7 +163,9 @@ async function updateChats (message:Message) {
     curMsg.sequence = records.length
     records.push(curMsg)
     recordsDir[talker.id] = records
-    webClient.websocket.send(JSON.stringify(newMessage))
+    if (webClient) {
+      webClient.websocket.send(JSON.stringify(newMessage))
+    }
   }
 }
 
@@ -256,7 +260,9 @@ async function updateChatsReply (requestBody: SendTextRequest) {
     curMsg.sequence = records.length
     records.push(curMsg)
     recordsDir[room.id] = records
-    webClient.websocket.send(JSON.stringify(newMessage))
+    if (webClient) {
+      webClient.websocket.send(JSON.stringify(newMessage))
+    }
   } else {
     const records:any[] = recordsDir[talker.id] || []
     const chatId = `1_${talker.id}`
@@ -307,7 +313,9 @@ async function updateChatsReply (requestBody: SendTextRequest) {
     curMsg.sequence = records.length
     records.push(curMsg)
     recordsDir[talker.id] = records
-    webClient.websocket.send(JSON.stringify(newMessage))
+    if (webClient) {
+      webClient.websocket.send(JSON.stringify(newMessage))
+    }
   }
 }
 
@@ -1268,9 +1276,9 @@ router.post('/api/v1/talk/message/text', async (ctx) => {
 
 app.use(router.routes())
 
-app.listen(9503)
+app.listen(process.env['HTTP_PORT'])
 
-log.info('http server running on http://127.0.0.1:9503')
+log.info(`http server running on http://127.0.0.1:${process.env['HTTP_PORT']}`)
 
 // ws服务
 const appWs = websockify(new Koa())
@@ -1333,6 +1341,6 @@ appWs.ws.use(routerWs.routes())
 // @ts-ignore
 appWs.ws.use(routerWs.allowedMethods())
 
-appWs.listen(9504, () => {
-  log.info('WebSocket server running on ws://127.0.0.1:9504')
+appWs.listen(process.env['WX_PORT'], () => {
+  log.info(`WebSocket server running on ws://127.0.0.1:${process.env['WX_PORT']}`)
 })
