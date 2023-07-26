@@ -1,17 +1,31 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
 /* eslint-disable sort-keys */
 import 'dotenv/config.js'
-import { Contact, Message, ScanStatus, types, WechatyBuilder, log, Room } from 'wechaty'
+import { Contact, Message, ScanStatus, types, WechatyBuilder, log } from 'wechaty'
 import qrcodeTerminal from 'qrcode-terminal'
 import { baseConfig, getConfig, getHistory, getTalk, getRecord, saveConfigFile, updateHistory, updateRecord, updateTalk, updateData, getChatGPTConfig, storeHistory } from './config.js'
 import { getChatGPTReply } from './chatgpt.js'
-import { FileBox } from 'file-box'
-import htmlToDocx from 'html-to-docx'
-import { getCurrentFormattedDate } from './utils/mod.js'
+// import { getCurrentFormattedDate } from './utils/mod.js'
 import type { SendTextRequest } from './types/mod.js'
-import { v4 as uuidv4 } from 'uuid'
+// import { v4 as uuidv4 } from 'uuid'
 import { messageStructuring } from './api/message.js'
-import type { MessageActions, Message as MessageNew, RoomMessage, Action } from './types/messageActionsSchema'
+import type { MessageActions, Action } from './types/messageActionsSchema'
+import {
+  getAvatarUrl,
+  updateChats,
+  updateChatsReply,
+  exportFile,
+  NewContact,
+  NewRoom,
+  getAllContacts,
+  getAllRooms,
+  ContactDetail,
+  RoomDetail,
+  getPhone,
+  updateConfig,
+} from './api/chat.js'
+import { KeyWords } from './types/data.js'
+import { validateToken } from './service/user-service.js'
 
 /* 将以下两行取消注释可以使用语音请求 */
 
@@ -25,6 +39,7 @@ import { vop } from './utils/baiduai.js'
 import Koa, { DefaultState, DefaultContext } from 'koa'
 import Router from '@koa/router'
 import bodyParser from 'koa-bodyparser'
+import { AppRoutes, Route } from './routes.js'
 import cors from '@koa/cors'
 import websockify from 'koa-websocket'
 
@@ -35,304 +50,7 @@ let contactList: any[] = []
 let roomList: any[] = []
 let webClient: any
 const recordsDir: {[key:string]:any[]} = getRecord()
-
 const chats:{[key:string]:any} = getTalk()
-
-async function updateChats (message:Message) {
-  const talker = message.talker()
-  const listener = message.listener()
-  const room = message.room()
-  const text = message.text()
-  const curTime = getCurrentFormattedDate()
-  const curMsg =     {
-    id: room?.id || talker.id,
-    sequence: 1140,
-    msg_id: message.id,
-    talk_type: 1,
-    msg_type: 1,
-    user_id: talker.id,
-    receiver_id: room?.id || talker.id,
-    nickname: talker.name(),
-    avatar: await getAvatarUrl(room || talker) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-    is_revoke: 0,
-    is_mark: 0,
-    is_read: 1,
-    content: text,
-    created_at: getCurrentFormattedDate(),
-    extra: {},
-  }
-
-  if (room) {
-    const records:any[] = recordsDir[room.id] || []
-    const chatId = `2_${room.id}`
-    chats[chatId] = {
-      avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-      id: chatId,
-      index_name: chatId,
-      is_disturb: 0,
-      is_online: 1,
-      is_robot: 0,
-      is_top: 0,
-      msg_text: text,
-      name: await room.topic(),
-      receiver_id: room.id,
-      remark_name: '',
-      talk_type: 2,
-      unread_num: 0,
-      updated_at: curTime,
-    }
-    const newMessage = {
-      sid:message.id,
-      event:'im.message',
-      content:{
-        data:{
-          avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-          content:text,
-          created_at:curTime,
-          extra:{
-
-          },
-          id:room.id,
-          is_revoke:0,
-          is_mark:0,
-          is_read:0,
-          msg_id:message.id,
-          msg_type:1,
-          nickname:talker.name(),
-          receiver_id:room.id,
-          sequence:379,
-          talk_type:2,
-          user_id:talker.id,
-        },
-        sender_id:talker.id,
-        receiver_id:room.id,
-        talk_type:2,
-      },
-    }
-    curMsg.sequence = records.length
-    records.push(curMsg)
-    recordsDir[room.id] = records
-    if (webClient) {
-      webClient.websocket.send(JSON.stringify(newMessage))
-    }
-  } else {
-    const records:any[] = recordsDir[talker.id] || []
-    const chatId = `1_${talker.id}`
-    chats[chatId] = {
-      avatar: await getAvatarUrl(talker) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-      id: chatId,
-      index_name: chatId,
-      is_disturb: 0,
-      is_online: 1,
-      is_robot: 0,
-      is_top: 0,
-      msg_text: text,
-      name: talker.name(),
-      receiver_id: talker.id,
-      remark_name: await talker.alias() || '',
-      talk_type: 1,
-      unread_num: 0,
-      updated_at: getCurrentFormattedDate(),
-    }
-    const newMessage = {
-      sid:message.id,
-      event:'im.message',
-      content:{
-        data:{
-          id:talker.id,
-          sequence:379,
-          msg_id:message.id,
-          talk_type:1,
-          msg_type:1,
-          user_id:talker.id,
-          receiver_id:listener?.id,
-          nickname:talker.name(),
-          avatar:await getAvatarUrl(talker) || 'https://im.gzydong.club/public/media/image/avatar/20230516/c5039ad4f29de2fd2c7f5a1789e155f5_200x200.png',
-          is_revoke:0,
-          is_mark:0,
-          is_read:0,
-          content:text,
-          created_at:getCurrentFormattedDate(),
-          extra:{
-
-          },
-        },
-        sender_id:talker.id,
-        receiver_id:listener?.id,
-        talk_type:1,
-      },
-    }
-    curMsg.sequence = records.length
-    records.push(curMsg)
-    recordsDir[talker.id] = records
-    if (webClient) {
-      webClient.websocket.send(JSON.stringify(newMessage))
-    }
-  }
-}
-
-async function updateChatsReply (requestBody: SendTextRequest) {
-
-  const talker: Contact | undefined = await bot.currentUser
-  let listener:Contact|undefined
-  let room:Room|undefined
-  const text = requestBody.text
-  const messageId = uuidv4()
-
-  if (requestBody.talk_type === 2) {
-    room = await bot.Room.find({ id: requestBody.receiver_id })
-    await room?.say(requestBody.text)
-  } else {
-    listener = await bot.Contact.find({ id: requestBody.receiver_id })
-  }
-
-  const curTime = getCurrentFormattedDate()
-  const curMsg =     {
-    id: room?.id || talker.id,
-    sequence: 1140,
-    msg_id: messageId,
-    talk_type: 1,
-    msg_type: 1,
-    user_id: talker.id,
-    receiver_id: room?.id || talker.id,
-    nickname: talker.name(),
-    avatar: await getAvatarUrl(room || talker) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-    is_revoke: 0,
-    is_mark: 0,
-    is_read: 1,
-    content: text,
-    created_at: getCurrentFormattedDate(),
-    extra: {
-      address: '中国 广东省 深圳市 电信',
-      agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
-      datetime: getCurrentFormattedDate(),
-      ip: '183.14.132.181',
-      platform: 'web',
-      reason: '常用设备登录',
-    },
-  }
-
-  if (room) {
-    const records:any[] = recordsDir[room.id] || []
-    const chatId = `2_${room.id}`
-    chats[chatId] = {
-      avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-      id: chatId,
-      index_name: chatId,
-      is_disturb: 0,
-      is_online: 1,
-      is_robot: 0,
-      is_top: 0,
-      msg_text: text,
-      name: await room.topic(),
-      receiver_id: room.id,
-      remark_name: '',
-      talk_type: 2,
-      unread_num: 0,
-      updated_at: curTime,
-    }
-    const newMessage = {
-      sid:messageId,
-      event:'im.message',
-      content:{
-        data:{
-          avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-          content:text,
-          created_at:curTime,
-          extra:{
-
-          },
-          id:room.id,
-          is_revoke:0,
-          is_mark:0,
-          is_read:0,
-          msg_id:messageId,
-          msg_type:1,
-          nickname:talker.name(),
-          receiver_id:room.id,
-          sequence:379,
-          talk_type:2,
-          user_id:talker.id,
-        },
-        sender_id:talker.id,
-        receiver_id:room.id,
-        talk_type:2,
-      },
-    }
-    curMsg.sequence = records.length
-    records.push(curMsg)
-    recordsDir[room.id] = records
-    if (webClient) {
-      webClient.websocket.send(JSON.stringify(newMessage))
-    }
-  } else {
-    const records:any[] = recordsDir[talker.id] || []
-    const chatId = `1_${talker.id}`
-    chats[chatId] = {
-      avatar: await getAvatarUrl(talker) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-      id: chatId,
-      index_name: chatId,
-      is_disturb: 0,
-      is_online: 1,
-      is_robot: 0,
-      is_top: 0,
-      msg_text: text,
-      name: talker.name(),
-      receiver_id: talker.id,
-      remark_name: await talker.alias() || '',
-      talk_type: 1,
-      unread_num: 0,
-      updated_at: getCurrentFormattedDate(),
-    }
-    const newMessage = {
-      sid:messageId,
-      event:'im.message',
-      content:{
-        data:{
-          id:talker.id,
-          sequence:379,
-          msg_id:messageId,
-          talk_type:1,
-          msg_type:1,
-          user_id:talker.id,
-          receiver_id:listener?.id,
-          nickname:talker.name(),
-          avatar:await getAvatarUrl(talker) || 'https://im.gzydong.club/public/media/image/avatar/20230516/c5039ad4f29de2fd2c7f5a1789e155f5_200x200.png',
-          is_revoke:0,
-          is_mark:0,
-          is_read:0,
-          content:text,
-          created_at:getCurrentFormattedDate(),
-          extra:{
-
-          },
-        },
-        sender_id:talker.id,
-        receiver_id:listener?.id,
-        talk_type:1,
-      },
-    }
-    curMsg.sequence = records.length
-    records.push(curMsg)
-    recordsDir[talker.id] = records
-    if (webClient) {
-      webClient.websocket.send(JSON.stringify(newMessage))
-    }
-  }
-}
-
-enum KeyWords {
-  Help = '#帮助',
-  BingdText = '发送 #绑定+ChatGPT的key+API地址 绑定GPT配置信息,例：\n\n#绑定+sk-zsL0e6orgRxxxxxx3BlbkFJd2BxgPfl5aB2D7hFgeVA+https://api.openai.com',
-  TemperatureText = '发送 #发散度+目标值 设置发散度，发散度取值范围0-1，例：\n\n#发散度+0.8',
-  MaxTokenText = '发送 #最大长度+目标值 设置返回消息的最大长度，例：\n\n#最大长度+2048',
-  HistoryContextNumText = '发送 #历史上下文数量+目标值 设置请求携带历史消息的数量，建议值1-6，例：\n\n#历史上下文数量+6',
-  SystemPromptText = '发送 #系统提示词+提示词内容 设置系统提示词，例：\n\n#系统提示词+你是一个中英文互译助手，将用户输入在中英文之间互译',
-  TimeoutText = '发送 #超时时间+目标值 设置请求超时时间，建议值30-90，例：\n\n#超时时间+30',
-  ExportFile = '#导出文件',
-  ClearHistory = '#清理历史消息'
-  // ExportDoc = '#导出文档'
-}
 
 // 设置定时任务，每隔 3 秒执行一次
 setInterval(() => {
@@ -347,39 +65,6 @@ setInterval(() => {
 }, 3000)
 
 // log.info('config:', JSON.stringify(config, null, '\t'))
-
-function updateConfig (curId:string, curUserConfig:any) {
-  if (curUserConfig) {
-    whiteList[curId] = curUserConfig
-  } else {
-    delete whiteList[curId]
-    delete history[curId]
-  }
-  config.whiteList = whiteList
-  config.lastUpdate = new Date().toLocaleString()
-}
-
-async function exportFile (history:any[]) {
-  try {
-    const time = new Date().toLocaleString()
-    let content = `<h2>导出时间</h2><br> ${time}<br><h2>内容记录</h2><br>`
-    for (const record of history) {
-      content += `${record.role} <br>${record.content}<br>`
-    }
-    // 使用html-to-docx库将会议聊天信息转换为word文档的buffer对象
-    const buffer = await htmlToDocx(content)
-    const reg = /[^a-zA-Z0-9]/g
-    // 将buffer对象转换为FileBox对象，用于发送文件
-    const fileBox = FileBox.fromBuffer(buffer, `${time.replace(reg, '')}.docx`)
-    return fileBox
-
-  } catch (err) {
-
-    // 如果出现错误，打印错误信息，并回复给群聊
-    log.error('导出失败', err)
-    return '导出失败，请重试'
-  }
-}
 
 function onScan (qrcode: string, status: ScanStatus) {
   if (status === ScanStatus.Waiting || status === ScanStatus.Timeout) {
@@ -406,7 +91,7 @@ function onLogout (user: Contact) {
 
 async function onMessage (msg: Message) {
   log.info('onMessage', JSON.stringify(msg))
-  await updateChats(msg)
+  await updateChats(msg, recordsDir, chats, webClient)
   try {
     const talker = msg.talker()
     const room = msg.room()
@@ -472,7 +157,7 @@ async function onMessage (msg: Message) {
 
           if (text === '#关闭') {
             if (curUserConfig) {
-              updateConfig(curId, '')
+              updateConfig(curId, '', whiteList, config, history)
               rePlyText = '你的智能助手已关闭~\n'
             } else {
               rePlyText = '智能助手未开启~\n'
@@ -488,7 +173,7 @@ async function onMessage (msg: Message) {
               const num = Number(textArr[1])
               if (num) {
                 curUserConfig['quota'] = (curUserConfig['quota'] || 20) + num
-                updateConfig(curId, curUserConfig)
+                updateConfig(curId, curUserConfig, whiteList, config, history)
                 rePlyText = `已充值成功，当前剩余${curUserConfig['quota']}次`
               } else {
                 rePlyText = '充值错误，请重新输入~'
@@ -552,7 +237,7 @@ async function onMessage (msg: Message) {
             rePlyText = '配置成功，我是你的智能助手~\n\n' + rePly['content']
             history = storeHistory(history, curId, 'user', '你能干什么？')
             history = storeHistory(history, curId, rePly.role, rePly.content)
-            updateConfig(curId, curUserConfig)
+            updateConfig(curId, curUserConfig, whiteList, config, history)
           } else {
             rePlyText = '输入的配置信息有误或权限不足，请使用key请求api验证配置信息是否正确后重试'
           }
@@ -568,7 +253,7 @@ async function onMessage (msg: Message) {
             const temperature = Number(textArr[1])
             if (curUserConfig) {
               curUserConfig['temperature'] = temperature
-              updateConfig(curId, curUserConfig)
+              updateConfig(curId, curUserConfig, whiteList, config, history)
               await msg.say(`分散度已设置为${temperature}`)
             } else {
               await msg.say('未配置key，不能设置参数')
@@ -584,7 +269,7 @@ async function onMessage (msg: Message) {
             if (curUserConfig) {
               if (systemPrompt === '清空') {
                 curUserConfig['systemPrompt'] = ''
-                updateConfig(curId, curUserConfig)
+                updateConfig(curId, curUserConfig, whiteList, config, history)
                 await msg.say('系统提示词已清空')
               } else {
                 curUserConfig['systemPrompt'] = systemPrompt
@@ -608,7 +293,7 @@ async function onMessage (msg: Message) {
             const maxTokenNum = Number(textArr[1])
             if (curUserConfig) {
               curUserConfig['maxTokenNum'] = maxTokenNum
-              updateConfig(curId, curUserConfig)
+              updateConfig(curId, curUserConfig, whiteList, config, history)
               await msg.say(`最大长度已设置为${maxTokenNum}`)
             } else {
               await msg.say('未配置key，不能设置参数')
@@ -623,7 +308,7 @@ async function onMessage (msg: Message) {
             const historyContextNum = Number(textArr[1])
             if (curUserConfig) {
               curUserConfig['historyContextNum'] = historyContextNum
-              updateConfig(curId, curUserConfig)
+              updateConfig(curId, curUserConfig, whiteList, config, history)
               await msg.say(`历史上下文数量已设置为${historyContextNum}`)
             } else {
               await msg.say('未配置key，不能设置参数')
@@ -638,7 +323,7 @@ async function onMessage (msg: Message) {
             const timeout = Number(textArr[1])
             if (curUserConfig) {
               curUserConfig['timeout'] = timeout
-              updateConfig(curId, curUserConfig)
+              updateConfig(curId, curUserConfig, whiteList, config, history)
               await msg.say(`超时时间已设置为${timeout}秒`)
             } else {
               await msg.say('未配置key，不能设置参数')
@@ -690,7 +375,7 @@ async function onMessage (msg: Message) {
               history = storeHistory(history, curId, rePly.role, rePly.content)
               quota = quota - 1
               curUserConfig['quota'] = quota
-              updateConfig(curId, curUserConfig)
+              updateConfig(curId, curUserConfig, whiteList, config, history)
             } else {
               history[curId].historyContext.pop()
             }
@@ -755,135 +440,9 @@ const router = new Router()
 app.use(cors())
 app.use(bodyParser())
 
-async function getAvatarUrl (params:Contact|Room) {
-  try {
-    return JSON.parse(JSON.stringify(await params.avatar()))['url']
-  } catch (e) {
-    return ''
-  }
-}
-
-async function getPhone (contact:Contact) {
-  try {
-    return (await contact.phone()).length ? (await contact.phone())[0] : '--'
-  } catch (e) {
-    return ''
-  }
-}
-
-type NewContact = {
-  avatar: string;
-  gender: types.ContactGender;
-  group_id: number;
-  id: string;
-  is_online: number;
-  motto: string;
-  nickname: string;
-  remark: string;
-}
-
-async function getAllContacts () {
-  const contacts = await bot.Contact.findAll()
-  const newContacts: NewContact[] = await Promise.all(
-    contacts.map(async (contact) => ({
-      avatar: await getAvatarUrl(contact) || 'https://im.gzydong.club/public/media/image/avatar/20230516/c5039ad4f29de2fd2c7f5a1789e155f5_200x200.png',
-      gender: contact.gender(),
-      group_id: 0,
-      id: contact.id,
-      is_online: 0,
-      motto: '',
-      nickname: contact.name(),
-      remark: await contact.alias() || '',
-    })),
-  )
-  return newContacts
-}
-
-type NewRoom = {
-  avatar: string;
-  group_name: string;
-  id: string;
-  is_disturb: number;
-  leader: string | undefined;
-  profile: string;
-};
-
-async function getAllRooms () {
-  const rooms = await bot.Room.findAll()
-  const newRooms: NewRoom[] = await Promise.all(
-    rooms.map(async (room: Room) => ({
-      avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/avatar/20230516/c5039ad4f29de2fd2c7f5a1789e155f5_200x200.png', // 设置群组头像
-      group_name: await room.topic(),
-      id: room.id,
-      is_disturb: 0, // 设置群组是否免打扰
-      leader: room.owner()?.id, // 设置群组领导人
-      profile: await room.announce(), // 设置群组简介
-    })),
-  )
-  return newRooms
-}
-
-// 登录认证
-
-const ACCESS_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJndWFyZCI6ImFwaSIsImlzcyI6ImltLndlYiIsImV4cCI6MTcyMTA3MDkwNCwiaWF0IjoxNjg1MDcwOTA0LCJqdGkiOiIyMDU0In0.-Mk4a20gur-QPxlYjgYc_eHWpWkDURJTawO0yBQ_b2g'
-  type LoginRequest = {
-    mobile: string;
-    password: string;
-    platform: string;
-  };
-
-  type LoginResponse = {
-    code: number;
-    message: string;
-    data: {
-      access_token: string;
-      expires_in: number;
-      type: string;
-    };
-  };
-
-router.post('/api/v1/auth/login', async (ctx: any) => {
-  const requestBody: LoginRequest = ctx.request.body
-  const { mobile, password, platform } = requestBody
-
-  // Check credentials and generate access token
-  // 假设存在一个根据手机号和密码验证用户的异步函数 authenticateUser
-  const isAuthenticated = await authenticateUser(mobile, password)
-
-  if (isAuthenticated) {
-    const response: LoginResponse = {
-      code: 200,
-      data: {
-        access_token: ACCESS_TOKEN,
-        expires_in: 36000000,
-        type: 'Bearer',
-      },
-      message: 'success',
-    }
-    ctx.body = response
-  } else {
-    const response = {
-      code: 401,
-      data: {},
-      message: 'Invalid credentials',
-    }
-    ctx.body = response
-  }
-})
-
-async function authenticateUser (mobile:string, password:string) {
-
-  if (mobile === '18798272054' && password === 'admin123') {
-    return true
-  } else {
-    return false
-  }
-
-}
-
 // 获取联系人列表
 router.get('/api/v1/contact/list', async (ctx: any) => {
-  const newContacts: NewContact[] = await getAllContacts()
+  const newContacts: NewContact[] = await getAllContacts(bot)
   contactList = newContacts
   const response = {
     code: 200,
@@ -898,7 +457,7 @@ router.get('/api/v1/contact/list', async (ctx: any) => {
 
 // 获取群列表
 router.get('/api/v1/group/list', async (ctx: any) => {
-  const newRooms: NewRoom[] = await getAllRooms()
+  const newRooms: NewRoom[] = await getAllRooms(bot)
   roomList = newRooms
   const response = {
     code: 200,
@@ -912,18 +471,6 @@ router.get('/api/v1/group/list', async (ctx: any) => {
 })
 
 // 获取群详情
-type RoomDetail = {
-  avatar: string;
-  created_at: string;
-  group_id: string;
-  group_name: string;
-  is_disturb: number,
-  is_manager: boolean,
-  manager_nickname:string | undefined,
-  profile: string,
-  visit_card: string
-};
-
 router.get('/api/v1/group/detail', async (ctx: any) => {
   const groupId: string = ctx.query.group_id
 
@@ -999,20 +546,6 @@ router.get('/api/v1/group/member/list', async (ctx: any) => {
 })
 
 // 获取联系人详情
-type ContactDetail = {
-  avatar: string;
-  email: string;
-  friend_apply: number;
-  friend_status: number;
-  gender: number;
-  group_id: number;
-  id: string;
-  mobile: string | undefined;
-  motto: string | undefined;
-  nickname: string;
-  remark: string | undefined;
-};
-
 router.get('/api/v1/users/detail', async (ctx: any) => {
   const userId: string = ctx.query.user_id
 
@@ -1058,7 +591,6 @@ router.get('/api/v1/users/detail', async (ctx: any) => {
 })
 
 router.get('/api/v1/users/setting', async (ctx: any) => {
-
   // 假设存在一个根据 userId 查找对应联系人的异步函数 findContactById
   const contact: Contact = bot.currentUser
   const contactDetail = {
@@ -1159,6 +691,7 @@ type ApplyRecord = {
 // This function is a placeholder to retrieve contact apply records.
 const getApplyRecords = async (page: number, pageSize: number): Promise<ApplyRecord[]> => {
   // Implement this function to retrieve the apply records
+  log.info('请求参数：', page, pageSize)
   return [] // Return an array of apply records
 }
 
@@ -1279,7 +812,7 @@ router.get('/api/v1/talk/records', async (ctx) => {
 
 router.post('/api/v1/talk/message/text', async (ctx) => {
   const requestBody: SendTextRequest = ctx.request.body as SendTextRequest
-  await updateChatsReply(requestBody)
+  await updateChatsReply(bot, requestBody, recordsDir, chats, webClient)
   if (requestBody.talk_type === 2) {
     const room = await bot.Room.find({ id: requestBody.receiver_id })
     await room?.say(requestBody.text)
@@ -1303,6 +836,9 @@ router.post('/api/v1/talk/message/text', async (ctx) => {
   }
 
 })
+
+// 路由
+AppRoutes.forEach((route) => (router as any)[route.method](route.path, route.action))
 
 app.use(router.routes())
 
@@ -1356,14 +892,6 @@ routerWs.get('/wss/default.io', async (ctx: any) => {
     ctx.websocket.close(1008, 'Invalid token')
   }
 })
-
-function validateToken (token: string) {
-  if (token === ACCESS_TOKEN) {
-    return true
-  } else {
-    return false
-  }
-}
 
 // @ts-ignore
 appWs.ws.use(routerWs.routes())
