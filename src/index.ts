@@ -10,6 +10,8 @@ import htmlToDocx from 'html-to-docx'
 import { getCurrentFormattedDate } from './utils/mod.js'
 import type { SendTextRequest } from './types/mod.js'
 import { v4 as uuidv4 } from 'uuid'
+import { messageStructuring } from './api/message.js'
+import type { MessageActions, Message as MessageNew, RoomMessage, Action } from './types/messageActionsSchema'
 
 /* 将以下两行取消注释可以使用语音请求 */
 
@@ -643,6 +645,34 @@ async function onMessage (msg: Message) {
             }
           } catch (err) {
             await msg.say('指令格式有误，请检查后重新输入')
+          }
+        }
+      } else if (text[0] === '/') {
+        const textArr = text.split(' ')
+        if (textArr[0] === '/msg') {
+          const res: MessageActions = await messageStructuring(msg.text())
+          log.info('res:', JSON.stringify(res))
+          if (res.actions.length) {
+            const textMsg:Action|undefined = res.actions[0]
+            if (textMsg?.actionType === 'sendMessage') {
+              const toUser = await bot.Contact.find({ name:textMsg.event.contacts[0] })
+              log.info('toUser:', JSON.stringify(toUser))
+              if (toUser) {
+                await toUser.say(textMsg.event.text)
+                await msg.say('已完成')
+              } else {
+                await msg.say('未找到联系人')
+              }
+            }
+            if (textMsg?.actionType === 'sendRoomMessage') {
+              const toUser = await bot.Room.find({ topic:textMsg.event.rooms[0] })
+              if (toUser) {
+                await toUser.say(textMsg.event.text)
+                await msg.say('已完成')
+              } else {
+                await msg.say('未找到群')
+              }
+            }
           }
         }
       } else {

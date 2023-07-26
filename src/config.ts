@@ -39,7 +39,7 @@ const baseConfig:BaseConfig = {
     items:{
       endpoint: {
         name:'API地址',
-        value:process.env['OPENAI_ENDPOINT'] || 'https://api.openai.com', // openai api地址
+        value:process.env['OPENAI_API_BASE_URL'] || 'https://api.openai.com', // openai api地址
       },
       key: {
         name:'API密钥',
