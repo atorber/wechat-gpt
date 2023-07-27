@@ -5,8 +5,14 @@ import { dirname } from 'path'
 import * as dotenv from 'dotenv'
 import { createLanguageModel, createJsonTranslator } from 'typechat'
 import { log } from 'wechaty'
+import type {
+  Message,
+} from 'wechaty'
 
 import type { MessageActions } from '../types/messageActionsSchema'
+
+import DB from '../db/nedb.js'
+const messageData = DB('data/message.db')
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -21,7 +27,7 @@ const translator = createJsonTranslator<MessageActions>(model, schema, 'MessageA
 translator.validator.stripNulls = true
 
 // Process requests interactively or from the input file specified on the command line
-export const messageStructuring = async (text:string) => {
+export const messageStructuring = async (text: string) => {
   const response: any = await translator.translate(text)
   log.info('messageStructuring:', JSON.stringify(response, undefined, 2))
   if (!response.success) {
@@ -38,4 +44,19 @@ export const messageStructuring = async (text:string) => {
     return messageActions
   }
   return messageActions
+}
+
+export const addMessage = async (message: Message) => {
+  const talker = message.talker()
+  const listener = message.listener()
+  const room = message.room()
+  const messageNew = {
+    _id: message.id,
+    data: message,
+    listener:listener ?? undefined,
+    room:room ?? undefined,
+    talker,
+  }
+  const res = await messageData.insert(messageNew)
+  log.info('addMessage:', JSON.stringify(res))
 }

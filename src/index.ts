@@ -8,7 +8,7 @@ import { getChatGPTReply } from './chatgpt.js'
 // import { getCurrentFormattedDate } from './utils/mod.js'
 import type { SendTextRequest } from './types/mod.js'
 // import { v4 as uuidv4 } from 'uuid'
-import { messageStructuring } from './api/message.js'
+import { messageStructuring, addMessage } from './api/message.js'
 import type { MessageActions, Action } from './types/messageActionsSchema'
 import {
   getAvatarUrl,
@@ -39,7 +39,7 @@ import { vop } from './utils/baiduai.js'
 import Koa, { DefaultState, DefaultContext } from 'koa'
 import Router from '@koa/router'
 import bodyParser from 'koa-bodyparser'
-import { AppRoutes, Route } from './routes.js'
+import { AppRoutes } from './routes.js'
 import cors from '@koa/cors'
 import websockify from 'koa-websocket'
 
@@ -92,6 +92,7 @@ function onLogout (user: Contact) {
 async function onMessage (msg: Message) {
   log.info('onMessage', JSON.stringify(msg))
   await updateChats(msg, recordsDir, chats, webClient)
+  await addMessage(msg)
   try {
     const talker = msg.talker()
     const room = msg.room()
@@ -785,7 +786,7 @@ const getTalkRecords = async (
 ): Promise<TalkRecord[]> => {
   // Implement this function to retrieve the talk records based on query parameters
   const records = recordsDir[receiverId]
-  log.info('聊天记录：', records)
+  log.info('聊天记录：', records, receiverId, talkType, limit, recordId)
   return records || [] // Return an array of talk records
 }
 
@@ -899,6 +900,6 @@ appWs.ws.use(routerWs.routes())
 // @ts-ignore
 appWs.ws.use(routerWs.allowedMethods())
 
-appWs.listen(process.env['WX_PORT'], () => {
-  log.info(`WebSocket server running on ws://127.0.0.1:${process.env['WX_PORT']}`)
+appWs.listen(process.env['WS_PORT'], () => {
+  log.info(`WebSocket server running on ws://127.0.0.1:${process.env['WS_PORT']}`)
 })
