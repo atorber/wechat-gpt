@@ -5,6 +5,8 @@ import type { SendTextRequest } from '../types/mod.js'
 import { v4 as uuidv4 } from 'uuid'
 import { FileBox } from 'file-box'
 import htmlToDocx from 'html-to-docx'
+import DB from '../db/nedb.js'
+const messageChatData = DB('data/messageChat.db')
 
 export async function getAvatarUrl (params:Contact|Room) {
   try {
@@ -93,6 +95,8 @@ export async function updateChats (
     curMsg.sequence = records.length
     records.push(curMsg)
     recordsDir[room.id] = records
+    // 存储到DB
+    await messageChatData.insert(records)
     if (webClient) {
       webClient.websocket.send(JSON.stringify(newMessage))
     }
@@ -302,6 +306,8 @@ export async function updateChatsReply (
     curMsg.sequence = records.length
     records.push(curMsg)
     recordsDir[talker.id] = records
+    // 存储到DB
+    await messageChatData.insert(records)
     if (webClient) {
       webClient.websocket.send(JSON.stringify(newMessage))
     }

@@ -1,13 +1,13 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
 /* eslint-disable sort-keys */
 import 'dotenv/config.js'
-import { Contact, Message, ScanStatus, types, WechatyBuilder, log } from 'wechaty'
+import { Contact, Message, ScanStatus, types, WechatyBuilder, log, Room, Sayable } from 'wechaty'
 import qrcodeTerminal from 'qrcode-terminal'
 import { baseConfig, getConfig, getHistory, getTalk, getRecord, saveConfigFile, updateHistory, updateRecord, updateTalk, updateData, getChatGPTConfig, storeHistory } from './config.js'
 import { getChatGPTReply } from './chatgpt.js'
 // import { getCurrentFormattedDate } from './utils/mod.js'
 import type { SendTextRequest } from './types/mod.js'
-// import { v4 as uuidv4 } from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 import { messageStructuring, addMessage } from './api/message.js'
 import type { MessageActions, Action } from './types/messageActionsSchema'
 import {
@@ -51,6 +51,7 @@ let roomList: any[] = []
 let webClient: any
 const recordsDir: {[key:string]:any[]} = getRecord()
 const chats:{[key:string]:any} = getTalk()
+let currentUser:Contact
 
 // 设置定时任务，每隔 3 秒执行一次
 setInterval(() => {
@@ -65,6 +66,47 @@ setInterval(() => {
 }, 3000)
 
 // log.info('config:', JSON.stringify(config, null, '\t'))
+
+type Publisher = Contact | Message | Room
+
+const sendMessage = async (publisher: Publisher, text: Sayable): Promise<void> => {
+  await publisher.say(text)
+
+  let listener: Contact | undefined, room: Room | undefined
+
+  if (await (publisher as Room).payload?.topic) {
+    room = publisher as Room
+  } else if ((publisher as Message).payload?.text) {
+    const rawMessage = publisher as Message
+    if (rawMessage.room()) {
+      room = rawMessage.room()
+    } else {
+      listener = rawMessage.talker()
+    }
+  } else if ((publisher as Contact).payload?.name) {
+    listener = publisher as Contact
+  }
+
+  const message: any = {
+    id: uuidv4(),
+    payload: {
+      filename: '',
+      id: uuidv4(),
+      listenerId: listener?.id,
+      mentionIdList: [],
+      roomId: '',
+      talkerId: currentUser.id,
+      text: text.toString(),
+      timestamp: new Date().getTime(),
+      type: 7,
+    },
+    talker: () => currentUser,
+    listener: () => listener,
+    room: () => room,
+  }
+
+  await addMessage(message)
+}
 
 function onScan (qrcode: string, status: ScanStatus) {
   if (status === ScanStatus.Waiting || status === ScanStatus.Timeout) {
@@ -83,6 +125,7 @@ function onScan (qrcode: string, status: ScanStatus) {
 
 function onLogin (user: Contact) {
   log.info('StarterBot', '%s login', user)
+  currentUser = user
 }
 
 function onLogout (user: Contact) {
@@ -164,9 +207,9 @@ async function onMessage (msg: Message) {
               rePlyText = '智能助手未开启~\n'
             }
             if (room) {
-              await msg.say(rePlyText)
+              await sendMessage(msg, rePlyText)
             } else {
-              await curContact?.say(rePlyText)
+              if (curContact) await sendMessage(curContact, rePlyText)
             }
           }
           if (textArr[0] === '#充值') {
@@ -183,9 +226,9 @@ async function onMessage (msg: Message) {
               rePlyText = '你还未开通服务，请联系管理员开通~'
             }
             if (room) {
-              await msg.say(rePlyText)
+              await sendMessage(msg, rePlyText)
             } else {
-              await curContact?.say(rePlyText)
+              if (curContact) await sendMessage(curContact, rePlyText)
             }
           }
           if (text === '#开通') {
@@ -200,13 +243,13 @@ async function onMessage (msg: Message) {
         const helpText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}\n\n${KeyWords.SystemPromptText}\n\n发送 ${KeyWords.ClearHistory} 清理历史消息\n\n发送 ${KeyWords.ExportFile} 可导出最近历史聊天记录为word文档`
         switch (text) {
           case KeyWords.Help:
-            await msg.say(helpText)
+            await sendMessage(msg, helpText)
             break
           case KeyWords.ExportFile:
             if (curHistory) {
-              await msg.say(await exportFile(curHistory.historyContext))
+              await sendMessage(msg, await exportFile(curHistory.historyContext))
             } else {
-              await msg.say('没有可导出的内容')
+              await sendMessage(msg, '没有可导出的内容')
             }
             break
           case KeyWords.ClearHistory:
@@ -214,16 +257,16 @@ async function onMessage (msg: Message) {
               curHistory.historyContext = []
               curHistory.time = []
               history[curId] = curHistory
-              await msg.say('历史消息清理完成~')
+              await sendMessage(msg, '历史消息清理完成~')
             } else {
-              await msg.say('无需清理~')
+              await sendMessage(msg, '无需清理~')
             }
             break
           case '#查询余额':
             if (curUserConfig) {
-              await msg.say(`你的剩余对话次数为${curUserConfig['quota'] || 20}次`)
+              await sendMessage(msg, `你的剩余对话次数为${curUserConfig['quota'] || 20}次`)
             } else {
-              await msg.say('你还未开通服务，请联系管理员开通~')
+              await sendMessage(msg, '你还未开通服务，请联系管理员开通~')
             }
             break
           default:
@@ -243,9 +286,9 @@ async function onMessage (msg: Message) {
             rePlyText = '输入的配置信息有误或权限不足，请使用key请求api验证配置信息是否正确后重试'
           }
           if (room || !isAdmin) {
-            await msg.say(rePlyText)
+            await sendMessage(msg, rePlyText)
           } else {
-            await curContact?.say(rePlyText)
+            if (curContact) await sendMessage(curContact, rePlyText)
           }
         }
         if (textArr.length === 2 && textArr[0] === '#发散度') {
@@ -255,12 +298,12 @@ async function onMessage (msg: Message) {
             if (curUserConfig) {
               curUserConfig['temperature'] = temperature
               updateConfig(curId, curUserConfig, whiteList, config, history)
-              await msg.say(`分散度已设置为${temperature}`)
+              await sendMessage(msg, `分散度已设置为${temperature}`)
             } else {
-              await msg.say('未配置key，不能设置参数')
+              await sendMessage(msg, '未配置key，不能设置参数')
             }
           } catch (err) {
-            await msg.say('指令格式有误，请检查后重新输入')
+            await sendMessage(msg, '指令格式有误，请检查后重新输入')
           }
         }
         if (textArr.length === 2 && textArr[0] === '#系统提示词') {
@@ -271,7 +314,7 @@ async function onMessage (msg: Message) {
               if (systemPrompt === '清空') {
                 curUserConfig['systemPrompt'] = ''
                 updateConfig(curId, curUserConfig, whiteList, config, history)
-                await msg.say('系统提示词已清空')
+                await sendMessage(msg, '系统提示词已清空')
               } else {
                 curUserConfig['systemPrompt'] = systemPrompt
                 whiteList[curId] = curUserConfig
@@ -279,13 +322,13 @@ async function onMessage (msg: Message) {
                 curHistory.historyContext = []
                 curHistory.time = []
                 history[curId] = curHistory
-                await msg.say(`历史消息已清理，系统提示词已设置为：${systemPrompt}`)
+                await sendMessage(msg, `历史消息已清理，系统提示词已设置为：${systemPrompt}`)
               }
             } else {
-              await msg.say('未配置key，不能设置参数')
+              await sendMessage(msg, '未配置key，不能设置参数')
             }
           } catch (err) {
-            await msg.say('指令格式有误，请检查后重新输入')
+            await sendMessage(msg, '指令格式有误，请检查后重新输入')
           }
         }
         if (textArr.length === 2 && textArr[0] === '#最大长度') {
@@ -295,12 +338,12 @@ async function onMessage (msg: Message) {
             if (curUserConfig) {
               curUserConfig['maxTokenNum'] = maxTokenNum
               updateConfig(curId, curUserConfig, whiteList, config, history)
-              await msg.say(`最大长度已设置为${maxTokenNum}`)
+              await sendMessage(msg, `最大长度已设置为${maxTokenNum}`)
             } else {
-              await msg.say('未配置key，不能设置参数')
+              await sendMessage(msg, '未配置key，不能设置参数')
             }
           } catch (err) {
-            await msg.say('指令格式有误，请检查后重新输入')
+            await sendMessage(msg, '指令格式有误，请检查后重新输入')
           }
         }
         if (textArr.length === 2 && textArr[0] === '#历史上下文数量') {
@@ -310,12 +353,12 @@ async function onMessage (msg: Message) {
             if (curUserConfig) {
               curUserConfig['historyContextNum'] = historyContextNum
               updateConfig(curId, curUserConfig, whiteList, config, history)
-              await msg.say(`历史上下文数量已设置为${historyContextNum}`)
+              await sendMessage(msg, `历史上下文数量已设置为${historyContextNum}`)
             } else {
-              await msg.say('未配置key，不能设置参数')
+              await sendMessage(msg, '未配置key，不能设置参数')
             }
           } catch (err) {
-            await msg.say('指令格式有误，请检查后重新输入')
+            await sendMessage(msg, '指令格式有误，请检查后重新输入')
           }
         }
         if (textArr.length === 2 && textArr[0] === '#超时时间') {
@@ -325,12 +368,12 @@ async function onMessage (msg: Message) {
             if (curUserConfig) {
               curUserConfig['timeout'] = timeout
               updateConfig(curId, curUserConfig, whiteList, config, history)
-              await msg.say(`超时时间已设置为${timeout}秒`)
+              await sendMessage(msg, `超时时间已设置为${timeout}秒`)
             } else {
-              await msg.say('未配置key，不能设置参数')
+              await sendMessage(msg, '未配置key，不能设置参数')
             }
           } catch (err) {
-            await msg.say('指令格式有误，请检查后重新输入')
+            await sendMessage(msg, '指令格式有误，请检查后重新输入')
           }
         }
       } else if (text[0] === '/') {
@@ -344,19 +387,20 @@ async function onMessage (msg: Message) {
               const toUser = await bot.Contact.find({ name:textMsg.event.contacts[0] })
               log.info('toUser:', JSON.stringify(toUser))
               if (toUser) {
-                await toUser.say(textMsg.event.text)
-                await msg.say('已完成')
+                await sendMessage(toUser, textMsg.event.text)
+
+                await sendMessage(msg, '已完成')
               } else {
-                await msg.say('未找到联系人')
+                await sendMessage(msg, '未找到联系人')
               }
             }
             if (textMsg?.actionType === 'sendRoomMessage') {
               const toUser = await bot.Room.find({ topic:textMsg.event.rooms[0] })
               if (toUser) {
-                await toUser.say(textMsg.event.text)
-                await msg.say('已完成')
+                await sendMessage(toUser, textMsg.event.text)
+                await sendMessage(msg, '已完成')
               } else {
-                await msg.say('未找到群')
+                await sendMessage(msg, '未找到群')
               }
             }
           }
@@ -371,7 +415,7 @@ async function onMessage (msg: Message) {
               messages.unshift({ content:curUserConfig.systemPrompt, role:'system' })
             }
             rePly = await getChatGPTReply(curUserConfig, messages)
-            await msg.say(rePly['content'])
+            await sendMessage(msg, rePly['content'])
             if (rePly['role'] !== 'err') {
               history = storeHistory(history, curId, rePly.role, rePly.content)
               quota = quota - 1
@@ -383,7 +427,7 @@ async function onMessage (msg: Message) {
           }
 
           if (quota === 0) {
-            await msg.say('配额不足，请联系管理员充值')
+            await sendMessage(msg, '配额不足，请联系管理员充值')
           }
 
         } else {
@@ -816,13 +860,14 @@ router.post('/api/v1/talk/message/text', async (ctx) => {
   await updateChatsReply(bot, requestBody, recordsDir, chats, webClient)
   if (requestBody.talk_type === 2) {
     const room = await bot.Room.find({ id: requestBody.receiver_id })
-    await room?.say(requestBody.text)
+    if (room) await sendMessage(room, requestBody.text)
     const response = { code:200, message:'success' }
     ctx.set('Content-Type', 'application/json; charset=utf-8')
     ctx.body = response
   } else if (requestBody.talk_type === 1) {
     const contact = await bot.Contact.find({ id: requestBody.receiver_id })
-    await contact?.say(requestBody.text)
+    if (contact) await sendMessage(contact, requestBody.text)
+
     const response = { code:200, message:'success' }
     ctx.set('Content-Type', 'application/json; charset=utf-8')
     ctx.body = response

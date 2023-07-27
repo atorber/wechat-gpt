@@ -60,3 +60,18 @@ export const addMessage = async (message: Message) => {
   const res = await messageData.insert(messageNew)
   log.info('addMessage:', JSON.stringify(res))
 }
+
+export const addSelfMessage = async (message: Message) => {
+  const talker = message.talker()
+  const listener = message.listener()
+  const room = message.room()
+  const messageNew = {
+    _id: message.id,
+    data: message,
+    listener:listener ?? undefined,
+    room:room ?? undefined,
+    talker,
+  }
+  const res = await messageData.insert(messageNew)
+  log.info('addMessage:', JSON.stringify(res))
+}
