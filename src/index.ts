@@ -487,7 +487,8 @@ app.use(bodyParser())
 
 // 获取联系人列表
 router.get('/api/v1/contact/list', async (ctx: any) => {
-  const newContacts: NewContact[] = await getAllContacts(bot)
+  // log.info('/api/v1/contact/list:', JSON.stringify(ctx))
+  const newContacts: NewContact[] = await getAllContacts(bot) as  NewContact[]
   contactList = newContacts
   const response = {
     code: 200,

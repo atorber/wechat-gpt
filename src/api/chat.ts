@@ -349,19 +349,27 @@ export type NewContact = {
 
 export async function getAllContacts (bot:Wechaty) {
   const contacts = await bot.Contact.findAll()
-  const newContacts: NewContact[] = await Promise.all(
-    contacts.map(async (contact) => ({
-      avatar: await getAvatarUrl(contact) || 'https://im.gzydong.club/public/media/image/avatar/20230516/c5039ad4f29de2fd2c7f5a1789e155f5_200x200.png',
-      gender: contact.gender(),
-      group_id: 0,
-      id: contact.id,
-      is_online: 0,
-      motto: '',
-      nickname: contact.name(),
-      remark: await contact.alias() || '',
-    })),
+  const newContacts: (NewContact|null)[] = await Promise.all(
+    contacts.map(async (contact) => {
+      if (await contact.friend()) {
+        return {
+          avatar: await getAvatarUrl(contact) || 'https://im.gzydong.club/public/media/image/avatar/20230516/c5039ad4f29de2fd2c7f5a1789e155f5_200x200.png',
+          gender: contact.gender(),
+          group_id: 0,
+          id: contact.id,
+          is_online: 0,
+          motto: '',
+          nickname: contact.name(),
+          remark: await contact.alias() || '',
+        }
+      }
+      return null // 如果联系人不是好友，则返回 null 或其他适当的值
+    }),
   )
-  return newContacts
+
+  // 过滤掉值为 null 的联系人
+  const filteredContacts: (NewContact|null)[] = newContacts.filter((contact) => contact !== null)
+  return filteredContacts
 }
 
 export type NewRoom = {
