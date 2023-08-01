@@ -27,12 +27,13 @@ export async function updateChats (
   const room = message.room()
   const text = message.text()
   const curTime = getCurrentFormattedDate()
+  const msgType = message.type() === types.Message.Text ? 1 : undefined
   const curMsg =     {
     id: room?.id || talker.id,
     sequence: 1140,
     msg_id: message.id,
     talk_type: 1,
-    msg_type: 1,
+    msg_type: msgType,
     user_id: talker.id,
     receiver_id: room?.id || talker.id,
     nickname: talker.name(),
@@ -362,6 +363,8 @@ export async function getAllContacts (bot:Wechaty) {
           nickname: contact.name(),
           remark: await contact.alias() || '',
         }
+      } else {
+        log.info('不是好友:', contact.name())
       }
       return null // 如果联系人不是好友，则返回 null 或其他适当的值
     }),

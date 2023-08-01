@@ -50,15 +50,29 @@ export const addMessage = async (message: Message) => {
   const talker = message.talker()
   const listener = message.listener()
   const room = message.room()
+  let roomJson:any
+  if (room) {
+    roomJson = JSON.parse(JSON.stringify(room))
+    delete roomJson.payload.memberIdList
+  }
+
   const messageNew = {
     _id: message.id,
     data: message,
     listener:listener ?? undefined,
-    room:room ?? undefined,
+    room:roomJson,
     talker,
   }
-  const res = await messageData.insert(messageNew)
-  log.info('addMessage:', JSON.stringify(res))
+  // log.info('addMessage messageNew:', JSON.stringify(messageNew))
+  try {
+    const res:any = await messageData.insert(messageNew)
+    log.info('addMessage success:', res._id)
+    return true
+  } catch (e) {
+    log.error('addMessage fail:', e)
+    return false
+  }
+
 }
 
 export const addSelfMessage = async (message: Message) => {
@@ -75,3 +89,31 @@ export const addSelfMessage = async (message: Message) => {
   const res = await messageData.insert(messageNew)
   log.info('addMessage:', JSON.stringify(res))
 }
+
+export const extractAtContent = (keyword: string, message: string): string | null => {
+  const startTag = '：'
+  const endTag = '」<br/>'
+
+  // 判断信息中是否包含关键字
+  if (message.includes(keyword)) {
+    const startIndex = message.indexOf(startTag) + startTag.length
+    const endIndex = message.indexOf(endTag, startIndex)
+
+    // 提取「和 」之间的内容
+    if (startIndex !== -1 && endIndex !== -1) {
+      return message.substring(startIndex, endIndex)
+    }
+  }
+
+  return null
+}
+
+// // 示例消息
+// const message = "「luyuchao：测试消息」<br/>- - - - - - - - - - - - - - -<br/>@瓦力";
+
+// const extractedContent = extractContent(message);
+// if (extractedContent) {
+//   console.log("提取到的内容：", extractedContent);
+// } else {
+//   console.log("未找到匹配的内容");
+// }

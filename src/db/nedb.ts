@@ -78,6 +78,13 @@ class DB {
     })
   }
 
+  // options: {
+  //   multi: true,
+  //   upsert: true,
+  //   returnUpdatedDocs: true,
+  //   returnOriginal: false,
+  //   returnUpdatedExisting: false
+  // }
   public update (query: any, values: any, options?: any): Promise<unknown> {
     return new Promise((resolve, reject) => {
       this.db.update(query || {}, values || {}, options || {}, (err: any, numAffected: unknown) => {
