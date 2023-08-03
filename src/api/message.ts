@@ -95,7 +95,7 @@ export const extractAtContent = (keyword: string, message: string): string | nul
   const endTag = '」<br/>'
 
   // 判断信息中是否包含关键字
-  if (message.includes(keyword)) {
+  if (message.endsWith(keyword)) {
     const startIndex = message.indexOf(startTag) + startTag.length
     const endIndex = message.indexOf(endTag, startIndex)
 

@@ -133,7 +133,28 @@ function onLogout (user: Contact) {
 }
 
 async function onMessage (msg: Message) {
-  log.info('onMessage', JSON.stringify(msg))
+  // log.info('onMessage', JSON.stringify(msg))
+
+  const talker = msg.talker()
+  log.info('talker:', JSON.stringify(talker, undefined, 2))
+  const alias = await talker.alias()
+  log.info('roomInfo:', '========================================')
+  log.info('await talker.alias()可用，talker alias:', alias)
+  log.info('roomInfo:', '========================================')
+
+  const room = msg.room()
+  if (room) {
+    log.info('room:', JSON.stringify(room, undefined, 2))
+    const memberAlias =  await room.alias(currentUser)
+    const has = await room.has(talker)
+    const member = await room.member('luyuchao1')
+    log.info('roomInfo:', '========================================')
+    log.info('const memberAlias =  await room.alias(currentUser):', memberAlias || undefined)
+    log.info('const has = await room.has(talker):', has)
+    log.info('const member = await room.member(\'luyuchao\'):', member)
+    log.info('roomInfo:', '========================================')
+  }
+
   await updateChats(msg, recordsDir, chats, webClient)
   const addRes = await addMessage(msg)
   if (addRes) {
@@ -900,9 +921,9 @@ AppRoutes.forEach((route) => (router as any)[route.method](route.path, route.act
 
 app.use(router.routes())
 
-app.listen(process.env['HTTP_PORT'])
+app.listen(process.env['HTTP_PORT'] || 9503)
 
-log.info(`http server running on http://127.0.0.1:${process.env['HTTP_PORT']}`)
+log.info(`http server running on http://127.0.0.1:${process.env['HTTP_PORT'] || 9503}`)
 
 // ws服务
 const appWs = websockify(new Koa())
@@ -957,6 +978,6 @@ appWs.ws.use(routerWs.routes())
 // @ts-ignore
 appWs.ws.use(routerWs.allowedMethods())
 
-appWs.listen(process.env['WS_PORT'], () => {
-  log.info(`WebSocket server running on ws://127.0.0.1:${process.env['WS_PORT']}`)
+appWs.listen(process.env['WS_PORT'] || 9504, () => {
+  log.info(`WebSocket server running on ws://127.0.0.1:${process.env['WS_PORT'] || 9504}`)
 })
