@@ -9,7 +9,7 @@ WechatGPT是一个使用微信充当ChatGPT对话窗口的工具,目前已实现
 
 ## 启动项目
 
-> 首先重命名src/config.ts.example为config.ts
+> 首先重命名根目录下.env.example为.env
 
 1.安装依赖及启动
 
@@ -33,64 +33,17 @@ npm start
 修改配置文件可更换puppet及配置百度云语音转文字接口ak、sk
 
 ```
-const baseConfig:BaseConfig = {
-  admin:{
-    name:'管理员信息',
-    items:{
-      roomid: {
-        name:'管理员群ID',
-        value:process.env['admin_roomid'] || '', // 管理群ID
-      },
-      wxid: {
-        name:'管理员微信ID',
-        value:process.env['admin_wxid'] || '', // 管理员微信ID
-      },
-    },
-  },
-  baiduvop: {
-    name: '百度云语音转文字服务',
-    items:{
-      ak: {
-        name:'Access Key',
-        value:process.env['baiduvop_ak'] || '', // 百度云语音转文字接口ak
-      },
-      sk: {
-        name:'Secret Key',
-        value:process.env['baiduvop_sk'] || '', // 百度云语音转文字接口sk
-      },
-    },
-
-  },
-  openai:{
-    name:'ChatGPT配置信息',
-    items:{
-      endpoint: {
-        name:'API地址',
-        value:process.env['openai_endpoint'] || 'https://api.openai-proxy.com', // openai api地址
-      },
-      key: {
-        name:'API密钥',
-        value:process.env['openai_key'] || '', // openai api密钥
-      },
-
-    },
-
-  },
-  wechaty: {
-    name:'Wechaty',
-    items:{
-      puppet: {
-        name:'Puppet名称',
-        value:process.env['wechaty_puppet'] || 'wechaty-puppet-wechat', // wechaty-puppet-padlocal、wechaty-puppet-service、wechaty-puppet-wechat、wechaty-puppet-wechat4u、wechaty-puppet-xp（运行npm run wechaty-puppet-xp安装）
-      },
-      token:{
-        name:'PuppetToken',
-        value: process.env['wechaty_token'] || '', // wechaty token
-      },
-    },
-
-  },
-}
+HTTP_PORT=9503
+WX_PORT=9504
+OPENAI_API_KEY=ADD_YOUR_VALUE
+OPENAI_MODEL=gpt-3.5-turbo
+OPENAI_ENDPOINT=https://api.openai-proxy.com
+ADMIN_ROOMID=ADD_YOUR_VALUE
+ADMIN_WXID=ADD_YOUR_VALUE
+BAIDUVOP_AK=ADD_YOUR_VALUE
+BAIDUVOP_SK=ADD_YOUR_VALUE
+WECHATY_PUPPET=wechaty-puppet-wechat4u
+WECHATY_TOKEN=ADD_YOUR_VALUE
 ```
 
 > 百度云语音转文字接口开通详见官网 [语音转文字](https://ai.baidu.com/tech/speech?track=b6d7c141cb9ed59bcbbc91553767924a6c41a067cf9e9572)
@@ -156,12 +109,12 @@ brew install ffmpeg
 ```
 docker run -d 
 --restart=always 
---env wechaty_puppet="wechaty-puppet-wechat4u" 
---env wechaty_token="wehcaty token" 
---env baiduvop_ak="百度语音转文字服务ak"
---env baiduvop_ak="百度语音转文字服务sk"
---env admin_wxid="管理员微信ID"
---env openai_key="你的openai api key"
+--env WECHATY_PUPPET="wechaty-puppet-wechat4u" 
+--env WECHATY_TOKEN="wehcaty token" 
+--env BAIDUVOP_AK="百度语音转文字服务ak"
+--env BAIDUVOP_AK="百度语音转文字服务sk"
+--env ADMIN_WXID="管理员微信ID"
+--env OPENAI_API_KEY="你的openai api key"
 atorber/wechatgpt:v0.8.2
 ```
 
@@ -208,6 +161,10 @@ atorber/wechatgpt:v0.8.2
 [![Star History Chart](https://api.star-history.com/svg?repos=choogoo/wechatgpt&type=Date)](https://star-history.com/#choogoo/wechatgpt&Date)
 
 ## 更新日志
+
+v0.11.0
+
+- 没有新增功能，优化为使用.env配置全局环境变量
 
 v0.8.1
 

@@ -1,6 +1,6 @@
 {
   "name": "WechatGPT",
-  "version": "0.10.0",
+  "version": "0.11.1",
   "description": "wechat & chatgpt",
   "type": "module",
   "engines": {
@@ -37,8 +37,11 @@
     "koa-bodyparser": "^4.4.0",
     "koa-router": "^12.0.0",
     "koa-websocket": "^7.0.0",
+    "nedb": "^1.8.0",
+    "nedb-promises": "^6.2.1",
     "qrcode-terminal": "^0.12.0",
     "request": "^2.88.2",
+    "typechat": "^0.0.10",
     "uuid": "^9.0.0",
     "wechaty": "^1.20.2",
     "wechaty-puppet-padlocal": "^1.20.1",
@@ -56,6 +59,7 @@
     "@types/koa-bodyparser": "^4.3.10",
     "@types/koa-router": "^7.4.4",
     "@types/koa-websocket": "^5.0.7",
+    "@types/nedb": "^1.8.13",
     "@types/node": "^18.15.11",
     "@types/qrcode-terminal": "^0.12.0",
     "@types/uuid": "^9.0.1",
