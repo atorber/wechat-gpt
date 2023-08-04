@@ -66,6 +66,10 @@ type ChatData = {
           name: string;
           value: string;
         };
+        model: {
+          name: string;
+          value: string;
+        };
       };
     };
     wechaty: {

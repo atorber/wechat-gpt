@@ -431,13 +431,32 @@ async function onMessage (msg: Message) {
             }
           }
         } else {
+          let atName = currentUser.name()
+          if (room) {
+            const memberAlias =  await room.alias(currentUser)
+            if (memberAlias) {
+              atName = memberAlias
+            }
+          }
+
+          const newText = extractAtContent(`@${atName}`, text)
+          if (newText !== null) {
+            text = newText
+            curUserConfig = {
+              endpoint: process.env['OPENAI_API_BASE_URL'],
+              historyContextNum: 6,
+              key: process.env['OPENAI_API_KEY'],
+              maxTokenNum: 2048,
+              systemPrompt: '',
+              temperature: 1,
+              timeout: 60,
+              userPrompt: '',
+              quota: 99,
+            }
+          }
           if (curUserConfig && text && !msg.self()) {
             let quota = curUserConfig['quota'] || 100
             if (quota > 0) {
-              const newText = extractAtContent(`@${currentUser.name()}`, text)
-              if (newText !== null) {
-                text = newText
-              }
               history = storeHistory(history, curId, 'user', text)
               const messages:any[] = history[curId].historyContext.slice(curUserConfig.historyContextNum * (-1))
               if (curUserConfig.systemPrompt) {
