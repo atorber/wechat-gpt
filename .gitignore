@@ -130,9 +130,7 @@ dist
 .pnp.*
 package-lock.json
 .DS_Store
-data/config.json
-data/contactList.json
-data/history.json
-data/record.json
-data/roomList.json
-data/talk.json
+data/*.json
+data/*.db
+*.memory-card.json
+output/*
