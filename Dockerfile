@@ -1,20 +1,18 @@
-# 使用官方Node.js 16镜像（包含基于Ubuntu的节点环境）
-FROM node:18
-
-# 安装需要的软件
-RUN apt-get update && \
-    apt-get install -y curl software-properties-common && \
-    apt-get install -y ffmpeg
-
-# 创建工作目录
+# 阶段一：构建阶段
+FROM node:18.17.0 AS build
 WORKDIR /usr/src/app
-
-# 复制当前目录下的所有文件到工作目录
-COPY . .
-
-# 安装依赖
+COPY package*.json ./
 RUN npm install
-RUN npm install wx-voice -g
+COPY . .
+RUN npm run build && \
+    # 清理不必要的文件
+    rm -rf node_modules
 
-# 启动应用
+# 阶段二：最终运行时镜像
+FROM node:18.17.0
+WORKDIR /usr/src/app
+COPY --from=build /usr/src/app/dist ./dist
+RUN apt-get update && \
+    apt-get install -y curl software-properties-common ffmpeg && \
+    npm install wx-voice -g
 CMD ["sh", "-c", "wx-voice compile && npm run start"]
