@@ -10,13 +10,21 @@ const baseConfig:BaseConfig = {
   admin:{
     name:'管理员信息',
     items:{
+      roomTopic: {
+        name:'管理员群',
+        value:process.env['ADMIN_ROOM_TOPIC'] || '', // 管理群名称
+      },
+      wxName: {
+        name:'管理员微信',
+        value:process.env['ADMIN_WX_NAME'] || '', // 管理员微信昵称
+      },
       roomid: {
-        name:'管理员群ID',
-        value:process.env['ADMIN_ROOMID'] || '', // 管理群ID
+        name:'管理员群',
+        value:process.env['ADMIN_ROOM_ID'] || '', // 管理群名称
       },
       wxid: {
-        name:'管理员微信ID',
-        value:process.env['ADMIN_WXID'] || '', // 管理员微信ID
+        name:'管理员微信',
+        value:process.env['ADMIN_WX_ID'] || '', // 管理员微信昵称
       },
     },
   },

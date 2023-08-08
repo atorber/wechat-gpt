@@ -32,6 +32,14 @@ type ChatData = {
     admin: {
       name: string;
       items: {
+        roomTopic:{
+          name: string;
+          value: string;
+        };
+        wxName:{
+          name: string;
+          value: string;
+        };
         roomid: {
           name: string;
           value: string;
@@ -89,6 +97,7 @@ type ChatData = {
 
   enum KeyWords {
     Help = '#帮助',
+    Advanced = '#高级操作',
     BingdText = '发送 #绑定+ChatGPT的key+API地址 绑定GPT配置信息,例：\n\n#绑定+sk-zsL0e6orgRxxxxxx3BlbkFJd2BxgPfl5aB2D7hFgeVA+https://api.openai.com',
     TemperatureText = '发送 #发散度+目标值 设置发散度，发散度取值范围0-1，例：\n\n#发散度+0.8',
     MaxTokenText = '发送 #最大长度+目标值 设置返回消息的最大长度，例：\n\n#最大长度+2048',
