@@ -3,12 +3,12 @@ import * as path from 'path'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 import * as dotenv from 'dotenv'
-import { createLanguageModel, createJsonTranslator } from 'typechat'
 import { log } from 'wechaty'
 import type {
   Message,
 } from 'wechaty'
 
+import { createLanguageModel, createJsonTranslator } from 'typechat'
 import type { MessageActions } from '../types/messageActionsSchema'
 
 import DB from '../db/nedb.js'

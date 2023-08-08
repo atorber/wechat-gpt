@@ -125,7 +125,15 @@ function onScan (qrcode: string, status: ScanStatus) {
 
 function onLogin (user: Contact) {
   log.info('StarterBot', '%s login', user)
-  currentUser = user
+  if (process.env['WECHATY_PUPPET'] && [ 'wechaty-puppet-wechat', 'wechaty-puppet-wechat4u' ].includes(process.env['WECHATY_PUPPET'])) {
+    currentUser = user
+  }
+}
+
+function onReady () {
+  if (process.env['WECHATY_PUPPET'] && [ 'wechaty-puppet-service' ].includes(process.env['WECHATY_PUPPET'])) {
+    currentUser = bot.currentUser
+  }
 }
 
 function onLogout (user: Contact) {
@@ -133,7 +141,7 @@ function onLogout (user: Contact) {
 }
 
 async function onMessage (msg: Message) {
-  // log.info('onMessage', JSON.stringify(msg))
+  log.info('onMessage', JSON.stringify(msg))
 
   const talker = msg.talker()
   log.info('talker:', JSON.stringify(talker, undefined, 2))
@@ -207,14 +215,17 @@ async function onMessage (msg: Message) {
       }
 
       let curUserConfig = whiteList[curId] || undefined
+      log.info('curUserConfig:', JSON.stringify(curUserConfig))
       let curHistory = history[curId] || undefined
       let curContact: Contact | undefined
-      const isAdmin = msg.talker().id === baseConfig.admin.items.wxid.value || msg.self()
+      const isAdmin = msg.talker().id === baseConfig.admin.items.wxid.value || msg.talker().name() === baseConfig.admin.items.wxName.value || msg.self()
 
       if ((msg.type() === types.Message.Text || msg.type() === types.Message.Audio)) {
         if (text[0] === '#') {
           log.info('操作指令：', text)
           let textArr = text.split('+')
+
+          // 管理员操作指令
           if (isAdmin) {
             if (!room) {
               curId = msg.listener()?.id || ''
@@ -243,9 +254,9 @@ async function onMessage (msg: Message) {
                 if (num) {
                   curUserConfig['quota'] = (curUserConfig['quota'] || 20) + num
                   updateConfig(curId, curUserConfig, whiteList, config, history)
-                  rePlyText = `已充值成功，当前剩余${curUserConfig['quota']}次`
+                  rePlyText = `充值成功，当前对话剩余${curUserConfig['quota']}次`
                 } else {
-                  rePlyText = '充值错误，请重新输入~'
+                  rePlyText = '格式错误，请重新输入~'
                 }
               } else {
                 rePlyText = '你还未开通服务，请联系管理员开通~'
@@ -265,8 +276,14 @@ async function onMessage (msg: Message) {
               }
             }
           }
-          const helpText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}\n\n${KeyWords.SystemPromptText}\n\n发送 ${KeyWords.ClearHistory} 清理历史消息\n\n发送 ${KeyWords.ExportFile} 可导出最近历史聊天记录为word文档`
+
+          // 用户操作指令
+          const advancedText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}\n\n${KeyWords.SystemPromptText}\n\n发送 ${KeyWords.ClearHistory} 清理历史消息\n\n发送 ${KeyWords.ExportFile} 可导出最近历史聊天记录为word文档`
+          const helpText = '发送如下消息可以完成对应操作：\n#开通服务 开启机器人服务\n#积分充值 购买问答积分\n#查询积分 查询余额\n#联系客服 联系客服微信'
           switch (text) {
+            case KeyWords.Advanced:
+              await sendMessage(msg, advancedText)
+              break
             case KeyWords.Help:
               await sendMessage(msg, helpText)
               break
@@ -287,11 +304,30 @@ async function onMessage (msg: Message) {
                 await sendMessage(msg, '无需清理~')
               }
               break
-            case '#查询余额':
+            case '#查询积分':
               if (curUserConfig) {
                 await sendMessage(msg, `你的剩余对话次数为${curUserConfig['quota'] || 20}次`)
               } else {
                 await sendMessage(msg, '你还未开通服务，请联系管理员开通~')
+              }
+              break
+            case '#联系客服':
+              await sendMessage(msg, '添加个人微信 ledongmao 联系客服')
+              break
+            case '#积分充值':
+              if (curUserConfig) {
+                await sendMessage(msg, '直接发送红包获取积分：\n￥1 = 20次\n￥5 = 120次\n￥10 = 250次')
+              } else {
+                await sendMessage(msg, '你还未开通服务，请发送 #开通服务 开通~')
+              }
+              break
+            case '#开通服务':
+              if (curUserConfig) {
+                rePlyText = '你已开通服务，无需重复开通~\n'
+                await sendMessage(msg, rePlyText)
+              } else {
+                text = `#绑定+${baseConfig.openai.items.key.value}+${baseConfig.openai.items.endpoint.value}`
+                textArr = text.split('+')
               }
               break
             default:
@@ -303,7 +339,7 @@ async function onMessage (msg: Message) {
             const curUserConfig = getChatGPTConfig(textArr)
             rePly = await getChatGPTReply(curUserConfig, [ { content:'你能干什么？', role:'user' } ])
             if (rePly['role'] !== 'err') {
-              rePlyText = '配置成功，我是你的智能助手~\n\n' + rePly['content']
+              rePlyText = '配置成功，已获得20次免费对话次数，我是你的智能助手~\n\n' + rePly['content']
               history = storeHistory(history, curId, 'user', '你能干什么？')
               history = storeHistory(history, curId, rePly.role, rePly.content)
               updateConfig(curId, curUserConfig, whiteList, config, history)
@@ -403,13 +439,16 @@ async function onMessage (msg: Message) {
           }
         } else if (text[0] === '/') {
           const textArr = text.split(' ')
-          if (textArr[0] === '/msg') {
+          if (textArr[0] === '/llm') {
             const res: MessageActions = await messageStructuring(msg.text())
             log.info('res:', JSON.stringify(res))
             if (res.actions.length) {
               const textMsg:Action|undefined = res.actions[0]
               if (textMsg?.actionType === 'sendMessage') {
-                const toUser = await bot.Contact.find({ name:textMsg.event.contacts[0] })
+                let toUser = await bot.Contact.find({ alias:textMsg.event.contacts[0] })
+                if (toUser) {
+                  toUser = await bot.Contact.find({ name:textMsg.event.contacts[0] })
+                }
                 log.info('toUser:', JSON.stringify(toUser))
                 if (toUser) {
                   await sendMessage(toUser, textMsg.event.text)
@@ -455,7 +494,7 @@ async function onMessage (msg: Message) {
             }
           }
           if (curUserConfig && text && !msg.self()) {
-            let quota = curUserConfig['quota'] || 100
+            let quota = curUserConfig['quota'] || 20
             if (quota > 0) {
               history = storeHistory(history, curId, 'user', text)
               const messages:any[] = history[curId].historyContext.slice(curUserConfig.historyContextNum * (-1))
@@ -475,7 +514,7 @@ async function onMessage (msg: Message) {
             }
 
             if (quota === 0) {
-              await sendMessage(msg, '配额不足，请联系管理员充值')
+              await sendMessage(msg, '余额不足，请充值\n直接发送红包获取积分：\n￥1 = 20次\n￥5 = 120次\n￥10 = 250次')
             }
 
           } else {
@@ -524,8 +563,31 @@ switch (puppet) {
 const bot = WechatyBuilder.build(ops)
 bot.on('scan',    onScan)
 bot.on('login',   onLogin)
+bot.on('ready',   onReady)
 bot.on('logout',  onLogout)
 bot.on('message', onMessage)
+bot.on('friendship', async friendship => {
+  try {
+    switch (friendship.type()) {
+
+      // 1. New Friend Request
+
+      case bot.Friendship.Type.Receive:
+        await friendship.accept()
+        await friendship.contact().say('你好，我是你的智能助手瓦力。发送 #帮助 获取操作说明')
+        break
+
+        // 2. Friend Ship Confirmed
+
+      case bot.Friendship.Type.Confirm:
+        log.info('case bot.Friendship.Type.Confirm:', '好友请求被确认')
+        await friendship.contact().say('你好，我是你的智能助手瓦力。发送 #帮助 获取操作说明~')
+        break
+    }
+  } catch (e) {
+    console.error(e)
+  }
+})
 
 bot.start()
   .then(() => log.info('StarterBot', 'Starter Bot Started.'))
