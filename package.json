@@ -41,9 +41,10 @@
     "nedb-promises": "^6.2.1",
     "qrcode-terminal": "^0.12.0",
     "request": "^2.88.2",
+    "type-fest": "^4.2.0",
+    "typechat": "^0.0.10",
     "uuid": "^9.0.0",
     "wechaty": "^1.20.2",
-    "typechat": "^0.0.10",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

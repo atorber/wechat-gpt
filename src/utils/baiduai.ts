@@ -1,6 +1,6 @@
 /* eslint-disable sort-keys */
 import axios from 'axios'
-import fs from 'fs'
+import * as fs from 'fs'
 
 import {
   log,
