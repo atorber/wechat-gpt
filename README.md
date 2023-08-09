@@ -9,28 +9,9 @@ WechatGPT是一个使用微信充当ChatGPT对话窗口的工具,目前已实现
 
 ## 启动项目
 
-> 首先重命名根目录下.env.example为.env
+1. 首先重命名根目录下.env.example为.env
 
-1.安装依赖及启动
-
-```
-npm i
-npm start
-```
-
-2.扫描二维码登录微信
-
-3.使用任意微信发送 #帮助 可获取操作指令
-
-4.发送如下格式给机器人，完成ChatGPT配置
-
-```
-#绑定+sk-zsL0e6orgRxxxxxx3BlbkFJd2BxgPfl5aB2D7hFgeVA+https://api.openai.com 
-```
-
-> 已支持api2d，不用梯子可以使用的openai接口 https://api2d.com
-
-修改配置文件可更换puppet及配置百度云语音转文字接口ak、sk
+修改配置文件可更换puppet及openai key
 
 ```
 HTTP_PORT=9503
@@ -47,15 +28,22 @@ WECHATY_PUPPET=wechaty-puppet-wechat4u
 WECHATY_TOKEN=ADD_YOUR_VALUE
 ```
 
+2.安装依赖及启动
+
+```
+npm i
+npm start
+```
+
+3.扫描二维码登录微信
+
+4.使用任意微信发送 #帮助 可获取操作指令
+
 ## Docker部署
 
 ```
-atorber/wechatgpt:v0.14.1
+atorber/wechatgpt:v0.14.1-thin
 ```
-
-## 机器人协议支持
-
-可参考 [wechat-openai-qa-bot](https://github.com/choogoo/wechat-openai-qa-bot) 项目关于wechaty机器人协议的支持，自行切换至其他协议 https://www.yuque.com/atorber/oegota/hgmhxclivlwn090z
 
 ## 效果展示
 
@@ -79,7 +67,11 @@ atorber/wechatgpt:v0.14.1
 
 <img src="./docs/4.jpeg" width="30%" height="30%" />
 
-- 绑定ChatGPT
+- 绑定自有openai key
+
+```
+#绑定+sk-zsL0e6orgRxxxxxx3BlbkFJd2BxgPfl5aB2D7hFgeVA+https://api.openai.com 
+```
 
 <img src="./docs/2.jpeg" width="30%" height="30%" />
 
@@ -90,6 +82,10 @@ atorber/wechatgpt:v0.14.1
 - 设定参数
 
 <img src="./docs/5.jpeg" width="30%" height="30%" />
+
+## 机器人协议支持
+
+可参考 [wechat-openai-qa-bot](https://github.com/choogoo/wechat-openai-qa-bot) 项目关于wechaty机器人协议的支持，自行切换至其他协议 https://www.yuque.com/atorber/oegota/hgmhxclivlwn090z
 
 ## 关于封号
 
