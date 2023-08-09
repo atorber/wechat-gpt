@@ -7,10 +7,7 @@ WORKDIR /usr/src/app
 # 复制当前目录下的所有文件到工作目录
 COPY . .
 
-RUN apt-get update && \
-    apt-get install -y curl software-properties-common ffmpeg && \
-    npm install && \
-    npm install wx-voice -g
+RUN npm install
 
 # 启动应用
-CMD ["sh", "-c", "wx-voice compile && npm run start"]
+CMD ["npm run start"]
