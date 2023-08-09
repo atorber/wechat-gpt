@@ -1,6 +1,6 @@
 {
   "name": "WechatGPT",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "description": "wechat & chatgpt",
   "type": "module",
   "engines": {
@@ -44,6 +44,7 @@
     "uuid": "^9.0.0",
     "wechaty": "^1.20.2",
     "wx-voice": "^0.2.1",
+    "typechat": "^0.0.10",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
