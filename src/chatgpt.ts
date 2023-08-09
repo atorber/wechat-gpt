@@ -29,10 +29,10 @@ async function getChatGPTReply (gptConfig: any, messages: any[]) {
     //   messageType: types.Message.Text,
     //   text: responseMessage.choices[0].message.content,
     // }
-
+    log.info('getChatGPTReply responseMessage:', JSON.stringify(responseMessage))
     return responseMessage.choices[0].message
   } catch (err) {
-    console.error(err)
+    log.error('getChatGPTReply err:', err)
     return {
       content: '发生了一些错误，请稍后再试~',
       role: 'err',

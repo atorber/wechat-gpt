@@ -1,21 +1,49 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
 /* eslint-disable sort-keys */
 import 'dotenv/config.js'
-import { Contact, Message, ScanStatus, types, WechatyBuilder, log, Room } from 'wechaty'
+import { Contact, Message, ScanStatus, types, WechatyBuilder, log, Room, Sayable } from 'wechaty'
 import qrcodeTerminal from 'qrcode-terminal'
 import { baseConfig, getConfig, getHistory, getTalk, getRecord, saveConfigFile, updateHistory, updateRecord, updateTalk, updateData, getChatGPTConfig, storeHistory } from './config.js'
 import { getChatGPTReply } from './chatgpt.js'
-import { FileBox } from 'file-box'
-import htmlToDocx from 'html-to-docx'
-import { getCurrentFormattedDate } from './utils/mod.js'
+// import { getCurrentFormattedDate } from './utils/mod.js'
 import type { SendTextRequest } from './types/mod.js'
 import { v4 as uuidv4 } from 'uuid'
+import {
+  // messageStructuring,
+  addMessage,
+  extractAtContent,
+} from './api/message.js'
+// import type { MessageActions, Action } from './types/messageActionsSchema'
+import {
+  getAvatarUrl,
+  updateChats,
+  updateChatsReply,
+  exportFile,
+  NewContact,
+  NewRoom,
+  getAllContacts,
+  getAllRooms,
+  ContactDetail,
+  RoomDetail,
+  getPhone,
+  updateConfig,
+} from './api/chat.js'
+import { KeyWords } from './types/data.js'
+import { validateToken } from './service/user-service.js'
+
+/* 将以下两行取消注释可以使用语音请求 */
+
+import { convertSilkToWav } from './utils/voice.js'
+import { vop } from './utils/baiduai.js'
+
+/*******************************/
 
 // import Koa from 'koa'
 // import Router from 'koa-router'
 import Koa, { DefaultState, DefaultContext } from 'koa'
 import Router from '@koa/router'
 import bodyParser from 'koa-bodyparser'
+import { AppRoutes } from './routes.js'
 import cors from '@koa/cors'
 import websockify from 'koa-websocket'
 
@@ -26,296 +54,8 @@ let contactList: any[] = []
 let roomList: any[] = []
 let webClient: any
 const recordsDir: {[key:string]:any[]} = getRecord()
-
 const chats:{[key:string]:any} = getTalk()
-
-async function updateChats (message:Message) {
-  const talker = message.talker()
-  const listener = message.listener()
-  const room = message.room()
-  const text = message.text()
-  const curTime = getCurrentFormattedDate()
-  const curMsg =     {
-    id: room?.id || talker.id,
-    sequence: 1140,
-    msg_id: message.id,
-    talk_type: 1,
-    msg_type: 1,
-    user_id: talker.id,
-    receiver_id: room?.id || talker.id,
-    nickname: talker.name(),
-    avatar: await getAvatarUrl(room || talker) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-    is_revoke: 0,
-    is_mark: 0,
-    is_read: 1,
-    content: text,
-    created_at: getCurrentFormattedDate(),
-    extra: {},
-  }
-
-  if (room) {
-    const records:any[] = recordsDir[room.id] || []
-    const chatId = `2_${room.id}`
-    chats[chatId] = {
-      avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-      id: chatId,
-      index_name: chatId,
-      is_disturb: 0,
-      is_online: 1,
-      is_robot: 0,
-      is_top: 0,
-      msg_text: text,
-      name: await room.topic(),
-      receiver_id: room.id,
-      remark_name: '',
-      talk_type: 2,
-      unread_num: 0,
-      updated_at: curTime,
-    }
-    const newMessage = {
-      sid:message.id,
-      event:'im.message',
-      content:{
-        data:{
-          avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-          content:text,
-          created_at:curTime,
-          extra:{
-
-          },
-          id:room.id,
-          is_revoke:0,
-          is_mark:0,
-          is_read:0,
-          msg_id:message.id,
-          msg_type:1,
-          nickname:talker.name(),
-          receiver_id:room.id,
-          sequence:379,
-          talk_type:2,
-          user_id:talker.id,
-        },
-        sender_id:talker.id,
-        receiver_id:room.id,
-        talk_type:2,
-      },
-    }
-    curMsg.sequence = records.length
-    records.push(curMsg)
-    recordsDir[room.id] = records
-    webClient.websocket.send(JSON.stringify(newMessage))
-  } else {
-    const records:any[] = recordsDir[talker.id] || []
-    const chatId = `1_${talker.id}`
-    chats[chatId] = {
-      avatar: await getAvatarUrl(talker) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-      id: chatId,
-      index_name: chatId,
-      is_disturb: 0,
-      is_online: 1,
-      is_robot: 0,
-      is_top: 0,
-      msg_text: text,
-      name: talker.name(),
-      receiver_id: talker.id,
-      remark_name: await talker.alias() || '',
-      talk_type: 1,
-      unread_num: 0,
-      updated_at: getCurrentFormattedDate(),
-    }
-    const newMessage = {
-      sid:message.id,
-      event:'im.message',
-      content:{
-        data:{
-          id:talker.id,
-          sequence:379,
-          msg_id:message.id,
-          talk_type:1,
-          msg_type:1,
-          user_id:talker.id,
-          receiver_id:listener?.id,
-          nickname:talker.name(),
-          avatar:await getAvatarUrl(talker) || 'https://im.gzydong.club/public/media/image/avatar/20230516/c5039ad4f29de2fd2c7f5a1789e155f5_200x200.png',
-          is_revoke:0,
-          is_mark:0,
-          is_read:0,
-          content:text,
-          created_at:getCurrentFormattedDate(),
-          extra:{
-
-          },
-        },
-        sender_id:talker.id,
-        receiver_id:listener?.id,
-        talk_type:1,
-      },
-    }
-    curMsg.sequence = records.length
-    records.push(curMsg)
-    recordsDir[talker.id] = records
-    webClient.websocket.send(JSON.stringify(newMessage))
-  }
-}
-
-async function updateChatsReply (requestBody: SendTextRequest) {
-
-  const talker: Contact | undefined = await bot.currentUser
-  let listener:Contact|undefined
-  let room:Room|undefined
-  const text = requestBody.text
-  const messageId = uuidv4()
-
-  if (requestBody.talk_type === 2) {
-    room = await bot.Room.find({ id: requestBody.receiver_id })
-    await room?.say(requestBody.text)
-  } else {
-    listener = await bot.Contact.find({ id: requestBody.receiver_id })
-  }
-
-  const curTime = getCurrentFormattedDate()
-  const curMsg =     {
-    id: room?.id || talker.id,
-    sequence: 1140,
-    msg_id: messageId,
-    talk_type: 1,
-    msg_type: 1,
-    user_id: talker.id,
-    receiver_id: room?.id || talker.id,
-    nickname: talker.name(),
-    avatar: await getAvatarUrl(room || talker) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-    is_revoke: 0,
-    is_mark: 0,
-    is_read: 1,
-    content: text,
-    created_at: getCurrentFormattedDate(),
-    extra: {
-      address: '中国 广东省 深圳市 电信',
-      agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
-      datetime: getCurrentFormattedDate(),
-      ip: '183.14.132.181',
-      platform: 'web',
-      reason: '常用设备登录',
-    },
-  }
-
-  if (room) {
-    const records:any[] = recordsDir[room.id] || []
-    const chatId = `2_${room.id}`
-    chats[chatId] = {
-      avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-      id: chatId,
-      index_name: chatId,
-      is_disturb: 0,
-      is_online: 1,
-      is_robot: 0,
-      is_top: 0,
-      msg_text: text,
-      name: await room.topic(),
-      receiver_id: room.id,
-      remark_name: '',
-      talk_type: 2,
-      unread_num: 0,
-      updated_at: curTime,
-    }
-    const newMessage = {
-      sid:messageId,
-      event:'im.message',
-      content:{
-        data:{
-          avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-          content:text,
-          created_at:curTime,
-          extra:{
-
-          },
-          id:room.id,
-          is_revoke:0,
-          is_mark:0,
-          is_read:0,
-          msg_id:messageId,
-          msg_type:1,
-          nickname:talker.name(),
-          receiver_id:room.id,
-          sequence:379,
-          talk_type:2,
-          user_id:talker.id,
-        },
-        sender_id:talker.id,
-        receiver_id:room.id,
-        talk_type:2,
-      },
-    }
-    curMsg.sequence = records.length
-    records.push(curMsg)
-    recordsDir[room.id] = records
-    webClient.websocket.send(JSON.stringify(newMessage))
-  } else {
-    const records:any[] = recordsDir[talker.id] || []
-    const chatId = `1_${talker.id}`
-    chats[chatId] = {
-      avatar: await getAvatarUrl(talker) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-      id: chatId,
-      index_name: chatId,
-      is_disturb: 0,
-      is_online: 1,
-      is_robot: 0,
-      is_top: 0,
-      msg_text: text,
-      name: talker.name(),
-      receiver_id: talker.id,
-      remark_name: await talker.alias() || '',
-      talk_type: 1,
-      unread_num: 0,
-      updated_at: getCurrentFormattedDate(),
-    }
-    const newMessage = {
-      sid:messageId,
-      event:'im.message',
-      content:{
-        data:{
-          id:talker.id,
-          sequence:379,
-          msg_id:messageId,
-          talk_type:1,
-          msg_type:1,
-          user_id:talker.id,
-          receiver_id:listener?.id,
-          nickname:talker.name(),
-          avatar:await getAvatarUrl(talker) || 'https://im.gzydong.club/public/media/image/avatar/20230516/c5039ad4f29de2fd2c7f5a1789e155f5_200x200.png',
-          is_revoke:0,
-          is_mark:0,
-          is_read:0,
-          content:text,
-          created_at:getCurrentFormattedDate(),
-          extra:{
-
-          },
-        },
-        sender_id:talker.id,
-        receiver_id:listener?.id,
-        talk_type:1,
-      },
-    }
-    curMsg.sequence = records.length
-    records.push(curMsg)
-    recordsDir[talker.id] = records
-    webClient.websocket.send(JSON.stringify(newMessage))
-  }
-}
-
-enum KeyWords {
-  Help = '#帮助',
-  BingdText = '发送 #绑定+ChatGPT的key+API地址 绑定GPT配置信息,例：\n\n#绑定+sk-zsL0e6orgRxxxxxx3BlbkFJd2BxgPfl5aB2D7hFgeVA+https://api.openai.com',
-  TemperatureText = '发送 #发散度+目标值 设置发散度，发散度取值范围0-1，例：\n\n#发散度+0.8',
-  MaxTokenText = '发送 #最大长度+目标值 设置返回消息的最大长度，例：\n\n#最大长度+2048',
-  HistoryContextNumText = '发送 #历史上下文数量+目标值 设置请求携带历史消息的数量，建议值1-6，例：\n\n#历史上下文数量+6',
-  SystemPromptText = '发送 #系统提示词+提示词内容 设置系统提示词，例：\n\n#系统提示词+你是一个中英文互译助手，将用户输入在中英文之间互译',
-  TimeoutText = '发送 #超时时间+目标值 设置请求超时时间，建议值30-90，例：\n\n#超时时间+30',
-  ExportFile = '#导出文件',
-  ClearHistory = '#清理历史消息'
-  // ExportDoc = '#导出文档'
-}
+let currentUser:Contact
 
 // 设置定时任务，每隔 3 秒执行一次
 setInterval(() => {
@@ -331,37 +71,45 @@ setInterval(() => {
 
 // log.info('config:', JSON.stringify(config, null, '\t'))
 
-function updateConfig (curId:string, curUserConfig:any) {
-  if (curUserConfig) {
-    whiteList[curId] = curUserConfig
-  } else {
-    delete whiteList[curId]
-    delete history[curId]
-  }
-  config.whiteList = whiteList
-  config.lastUpdate = new Date().toLocaleString()
-}
+type Publisher = Contact | Message | Room
 
-async function exportFile (history:any[]) {
-  try {
-    const time = new Date().toLocaleString()
-    let content = `<h2>导出时间</h2><br> ${time}<br><h2>内容记录</h2><br>`
-    for (const record of history) {
-      content += `${record.role} <br>${record.content}<br>`
+const sendMessage = async (publisher: Publisher, text: Sayable): Promise<void> => {
+  await publisher.say(text)
+
+  let listener: Contact | undefined, room: Room | undefined
+
+  if (await (publisher as Room).payload?.topic) {
+    room = publisher as Room
+  } else if ((publisher as Message).payload?.text) {
+    const rawMessage = publisher as Message
+    if (rawMessage.room()) {
+      room = rawMessage.room()
+    } else {
+      listener = rawMessage.talker()
     }
-    // 使用html-to-docx库将会议聊天信息转换为word文档的buffer对象
-    const buffer = await htmlToDocx(content)
-    const reg = /[^a-zA-Z0-9]/g
-    // 将buffer对象转换为FileBox对象，用于发送文件
-    const fileBox = FileBox.fromBuffer(buffer, `${time.replace(reg, '')}.docx`)
-    return fileBox
-
-  } catch (err) {
-
-    // 如果出现错误，打印错误信息，并回复给群聊
-    log.error('导出失败', err)
-    return '导出失败，请重试'
+  } else if ((publisher as Contact).payload?.name) {
+    listener = publisher as Contact
   }
+
+  const message: any = {
+    id: uuidv4(),
+    payload: {
+      filename: '',
+      id: uuidv4(),
+      listenerId: listener?.id,
+      mentionIdList: [],
+      roomId: '',
+      talkerId: currentUser.id,
+      text: text.toString(),
+      timestamp: new Date().getTime(),
+      type: 7,
+    },
+    talker: () => currentUser,
+    listener: () => listener,
+    room: () => room,
+  }
+
+  await addMessage(message)
 }
 
 function onScan (qrcode: string, status: ScanStatus) {
@@ -381,6 +129,15 @@ function onScan (qrcode: string, status: ScanStatus) {
 
 function onLogin (user: Contact) {
   log.info('StarterBot', '%s login', user)
+  if (process.env['WECHATY_PUPPET'] && [ 'wechaty-puppet-wechat', 'wechaty-puppet-wechat4u' ].includes(process.env['WECHATY_PUPPET'])) {
+    currentUser = user
+  }
+}
+
+function onReady () {
+  if (process.env['WECHATY_PUPPET'] && [ 'wechaty-puppet-service' ].includes(process.env['WECHATY_PUPPET'])) {
+    currentUser = bot.currentUser
+  }
 }
 
 function onLogout (user: Contact) {
@@ -389,250 +146,366 @@ function onLogout (user: Contact) {
 
 async function onMessage (msg: Message) {
   log.info('onMessage', JSON.stringify(msg))
-  await updateChats(msg)
-  try {
-    const talker = msg.talker()
-    const room = msg.room()
-    let text = msg.text()
+  const talker = msg.talker()
+  const room = msg.room()
+  let text = msg.text()
+  if (text === '帮助') text = '#帮助'
+  log.info('talker:', JSON.stringify(talker))
+  // const alias = await talker.alias()
+  // log.info('roomInfo:', '========================================')
+  // log.info('await talker.alias()可用，talker alias:', alias)
+  // log.info('roomInfo:', '========================================')
 
-    let rePly:any = {}
-    let rePlyText:string = ''
-    let curId = ''
+  // const room = msg.room()
+  // if (room) {
+  //   log.info('room:', JSON.stringify(room, undefined, 2))
+  //   const memberAlias =  await room.alias(currentUser)
+  //   const has = await room.has(talker)
+  //   const member = await room.member('luyuchao1')
+  //   log.info('roomInfo:', '========================================')
+  //   log.info('const memberAlias =  await room.alias(currentUser):', memberAlias || undefined)
+  //   log.info('const has = await room.has(talker):', has)
+  //   log.info('const member = await room.member(\'luyuchao\'):', member)
+  //   log.info('roomInfo:', '========================================')
+  // }
 
-    if (room) {
-      curId = room.id
-    } else {
-      curId = talker.id
-    }
-    log.info('curId', curId)
+  await updateChats(msg, recordsDir, chats, webClient)
+  const addRes = await addMessage(msg)
+  if (addRes) {
+    try {
+      let rePly:any = {}
+      let rePlyText:string = ''
+      let curId = ''
+      let curUser = ''
 
-    let curUserConfig = whiteList[curId] || undefined
-    let curHistory = history[curId] || undefined
-    let curContact: Contact | undefined
-    const isAdmin = msg.talker().id === baseConfig.admin.items.wxid.value || msg.self()
+      if (room) {
+        curId = room.id
+        curUser = await room.topic()
+      } else {
+        curId = talker.id
+        curUser = talker.name()
+      }
+      log.info('curUser', curUser, curId)
 
-    if ((msg.type() === types.Message.Text || msg.type() === types.Message.Audio)) {
-      if (text[0] === '#') {
-        log.info('操作指令：', text)
-        let textArr = text.split('+')
-        if (isAdmin) {
-          if (!room) {
-            curId = msg.listener()?.id || ''
-            curHistory = history[curId] || undefined
-            curUserConfig = whiteList[curId] || undefined
-            curContact = await bot.Contact.find({ id:curId })
-          }
-          log.info('管理员操作，操作指令：', text)
+      if (msg.type() === types.Message.Audio) {
+        try {
+          text = ''
 
-          if (text === '#关闭') {
-            if (curUserConfig) {
-              updateConfig(curId, '')
-              rePlyText = '你的智能助手已关闭~\n'
-            } else {
-              rePlyText = '智能助手未开启~\n'
+          /* 取消以下注释可以使用语音请求 */
+
+          if (baseConfig.baiduvop.items.ak.value) {
+            const voiceFile = await msg.toFileBox()
+            const fileName = voiceFile.name
+            await voiceFile.toFile(fileName)
+            log.info('voice:', fileName)
+            const newFile = await convertSilkToWav(fileName)
+            log.info(newFile)
+            const res:any = await vop(newFile)
+            log.info('res:', JSON.stringify(res.result[0]))
+            if (res.err_msg === 'success.') {
+              text = res.result[0]
             }
-            if (room) {
-              await msg.say(rePlyText)
-            } else {
-              await curContact?.say(rePlyText)
-            }
+          } else {
+            log.info('baiduvop未配置')
           }
-          if (textArr[0] === '#充值') {
-            if (curUserConfig && textArr.length === 2) {
-              const num = Number(textArr[1])
-              if (num) {
-                curUserConfig['quota'] = (curUserConfig['quota'] || 20) + num
-                updateConfig(curId, curUserConfig)
-                rePlyText = `已充值成功，当前剩余${curUserConfig['quota']}次`
+
+          /**************************/
+
+        } catch (err) {
+          log.error('err:', err)
+        }
+      }
+
+      let curUserConfig = whiteList[curId] || undefined
+      log.info('curUserConfig:', JSON.stringify(curUserConfig))
+      let curHistory = history[curId] || undefined
+      let curContact: Contact | undefined
+      const isAdmin = msg.talker().id === baseConfig.admin.items.wxid.value || msg.talker().name() === baseConfig.admin.items.wxName.value || msg.self()
+
+      if ((msg.type() === types.Message.Text || msg.type() === types.Message.Audio)) {
+        if (text[0] === '#') {
+          log.info('操作指令：', text)
+          let textArr = text.split('+')
+
+          // 管理员操作指令
+          if (isAdmin) {
+            if (!room) {
+              curId = msg.listener()?.id || ''
+              curHistory = history[curId] || undefined
+              curUserConfig = whiteList[curId] || undefined
+              curContact = await bot.Contact.find({ id:curId })
+            }
+            log.info('管理员操作，操作指令：', text)
+
+            if (text === '#关闭') {
+              if (curUserConfig) {
+                updateConfig(curId, '', whiteList, config, history)
+                rePlyText = '你的智能助手已关闭~\n'
               } else {
-                rePlyText = '充值错误，请重新输入~'
+                rePlyText = '智能助手未开启~\n'
               }
-            } else {
-              rePlyText = '你还未开通服务，请联系管理员开通~'
-            }
-            if (room) {
-              await msg.say(rePlyText)
-            } else {
-              await curContact?.say(rePlyText)
-            }
-          }
-          if (text === '#开通') {
-            if (baseConfig.openai.items.key.value) {
-              text = `#绑定+${baseConfig.openai.items.key.value}+${baseConfig.openai.items.endpoint.value}`
-              textArr = text.split('+')
-            } else {
-              rePlyText = '智能助手未配置~'
-            }
-          }
-        }
-        const helpText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}\n\n${KeyWords.SystemPromptText}\n\n发送 ${KeyWords.ClearHistory} 清理历史消息\n\n发送 ${KeyWords.ExportFile} 可导出最近历史聊天记录为word文档`
-        switch (text) {
-          case KeyWords.Help:
-            await msg.say(helpText)
-            break
-          case KeyWords.ExportFile:
-            if (curHistory) {
-              await msg.say(await exportFile(curHistory.historyContext))
-            } else {
-              await msg.say('没有可导出的内容')
-            }
-            break
-          case KeyWords.ClearHistory:
-            if (curHistory) {
-              curHistory.historyContext = []
-              curHistory.time = []
-              history[curId] = curHistory
-              await msg.say('历史消息清理完成~')
-            } else {
-              await msg.say('无需清理~')
-            }
-            break
-          case '#查询余额':
-            if (curUserConfig) {
-              await msg.say(`你的剩余对话次数为${curUserConfig['quota'] || 20}次`)
-            } else {
-              await msg.say('你还未开通服务，请联系管理员开通~')
-            }
-            break
-          default:
-            log.info('不是系统操作指令')
-        }
-        log.info('textArr', textArr)
-        if (textArr.length === 3 && textArr[0] === '#绑定') {
-          log.info('textArr', textArr)
-          const curUserConfig = getChatGPTConfig(textArr)
-          rePly = await getChatGPTReply(curUserConfig, [ { content:'你能干什么？', role:'user' } ])
-          if (rePly['role'] !== 'err') {
-            rePlyText = '配置成功，我是你的智能助手~\n\n' + rePly['content']
-            history = storeHistory(history, curId, 'user', '你能干什么？')
-            history = storeHistory(history, curId, rePly.role, rePly.content)
-            updateConfig(curId, curUserConfig)
-          } else {
-            rePlyText = '输入的配置信息有误或权限不足，请使用key请求api验证配置信息是否正确后重试'
-          }
-          if (room || !isAdmin) {
-            await msg.say(rePlyText)
-          } else {
-            await curContact?.say(rePlyText)
-          }
-        }
-        if (textArr.length === 2 && textArr[0] === '#发散度') {
-          log.info('textArr', textArr)
-          try {
-            const temperature = Number(textArr[1])
-            if (curUserConfig) {
-              curUserConfig['temperature'] = temperature
-              updateConfig(curId, curUserConfig)
-              await msg.say(`分散度已设置为${temperature}`)
-            } else {
-              await msg.say('未配置key，不能设置参数')
-            }
-          } catch (err) {
-            await msg.say('指令格式有误，请检查后重新输入')
-          }
-        }
-        if (textArr.length === 2 && textArr[0] === '#系统提示词') {
-          log.info('textArr', textArr)
-          try {
-            const systemPrompt = String(textArr[1])
-            if (curUserConfig) {
-              if (systemPrompt === '清空') {
-                curUserConfig['systemPrompt'] = ''
-                updateConfig(curId, curUserConfig)
-                await msg.say('系统提示词已清空')
+              if (room) {
+                await sendMessage(msg, rePlyText)
               } else {
-                curUserConfig['systemPrompt'] = systemPrompt
-                whiteList[curId] = curUserConfig
-                config.whiteList = whiteList
+                if (curContact) await sendMessage(curContact, rePlyText)
+              }
+            }
+            if (textArr[0] === '#充值') {
+              if (curUserConfig && textArr.length === 2) {
+                const num = Number(textArr[1])
+                if (num) {
+                  curUserConfig['quota'] = (curUserConfig['quota'] || 20) + num
+                  updateConfig(curId, curUserConfig, whiteList, config, history)
+                  rePlyText = `充值成功，当前对话剩余${curUserConfig['quota']}次`
+                } else {
+                  rePlyText = '格式错误，请重新输入~'
+                }
+              } else {
+                rePlyText = '你还未开通服务，请联系管理员开通~'
+              }
+              if (room) {
+                await sendMessage(msg, rePlyText)
+              } else {
+                if (curContact) await sendMessage(curContact, rePlyText)
+              }
+            }
+            if (text === '#开通') {
+              if (baseConfig.openai.items.key.value) {
+                text = `#绑定+${baseConfig.openai.items.key.value}+${baseConfig.openai.items.endpoint.value}`
+                textArr = text.split('+')
+              } else {
+                rePlyText = '智能助手未配置~'
+              }
+            }
+          }
+
+          // 用户操作指令
+          const advancedText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}\n\n${KeyWords.SystemPromptText}\n\n发送 ${KeyWords.ClearHistory} 清理历史消息\n\n发送 ${KeyWords.ExportFile} 可导出最近历史聊天记录为word文档`
+          const helpText = '发送如下消息可以完成对应操作：\n#开通服务 开启机器人服务\n#积分充值 购买问答积分\n#查询积分 查询余额\n#联系客服 联系客服微信'
+          switch (text) {
+            case KeyWords.Advanced:
+              await sendMessage(msg, advancedText)
+              break
+            case KeyWords.Help:
+              await sendMessage(msg, helpText)
+              break
+            case KeyWords.ExportFile:
+              if (curHistory) {
+                await sendMessage(msg, await exportFile(curHistory.historyContext))
+              } else {
+                await sendMessage(msg, '没有可导出的内容')
+              }
+              break
+            case KeyWords.ClearHistory:
+              if (curHistory) {
                 curHistory.historyContext = []
                 curHistory.time = []
                 history[curId] = curHistory
-                await msg.say(`历史消息已清理，系统提示词已设置为：${systemPrompt}`)
+                await sendMessage(msg, '历史消息清理完成~')
+              } else {
+                await sendMessage(msg, '无需清理~')
               }
-            } else {
-              await msg.say('未配置key，不能设置参数')
-            }
-          } catch (err) {
-            await msg.say('指令格式有误，请检查后重新输入')
+              break
+            case '#查询积分':
+              if (curUserConfig) {
+                await sendMessage(msg, `你的剩余对话次数为${curUserConfig['quota'] || 20}次`)
+              } else {
+                await sendMessage(msg, '你还未开通服务，请联系管理员开通~')
+              }
+              break
+            case '#联系客服':
+              await sendMessage(msg, '添加个人微信 ledongmao 联系客服')
+              break
+            case '#积分充值':
+              if (curUserConfig) {
+                await sendMessage(msg, '直接发送红包获取积分：\n￥1 = 20次\n￥5 = 120次\n￥10 = 250次')
+              } else {
+                await sendMessage(msg, '你还未开通服务，请发送 #开通服务 开通~')
+              }
+              break
+            case '#开通服务':
+              if (curUserConfig) {
+                rePlyText = '你已开通服务，无需重复开通~\n'
+                await sendMessage(msg, rePlyText)
+              } else {
+                text = `#绑定+${baseConfig.openai.items.key.value}+${baseConfig.openai.items.endpoint.value}`
+                textArr = text.split('+')
+              }
+              break
+            default:
+              log.info('不是系统操作指令')
           }
-        }
-        if (textArr.length === 2 && textArr[0] === '#最大长度') {
           log.info('textArr', textArr)
-          try {
-            const maxTokenNum = Number(textArr[1])
-            if (curUserConfig) {
-              curUserConfig['maxTokenNum'] = maxTokenNum
-              updateConfig(curId, curUserConfig)
-              await msg.say(`最大长度已设置为${maxTokenNum}`)
-            } else {
-              await msg.say('未配置key，不能设置参数')
-            }
-          } catch (err) {
-            await msg.say('指令格式有误，请检查后重新输入')
-          }
-        }
-        if (textArr.length === 2 && textArr[0] === '#历史上下文数量') {
-          log.info('textArr', textArr)
-          try {
-            const historyContextNum = Number(textArr[1])
-            if (curUserConfig) {
-              curUserConfig['historyContextNum'] = historyContextNum
-              updateConfig(curId, curUserConfig)
-              await msg.say(`历史上下文数量已设置为${historyContextNum}`)
-            } else {
-              await msg.say('未配置key，不能设置参数')
-            }
-          } catch (err) {
-            await msg.say('指令格式有误，请检查后重新输入')
-          }
-        }
-        if (textArr.length === 2 && textArr[0] === '#超时时间') {
-          log.info('textArr', textArr)
-          try {
-            const timeout = Number(textArr[1])
-            if (curUserConfig) {
-              curUserConfig['timeout'] = timeout
-              updateConfig(curId, curUserConfig)
-              await msg.say(`超时时间已设置为${timeout}秒`)
-            } else {
-              await msg.say('未配置key，不能设置参数')
-            }
-          } catch (err) {
-            await msg.say('指令格式有误，请检查后重新输入')
-          }
-        }
-      } else {
-        if (curUserConfig && text && !msg.self()) {
-          let quota = curUserConfig['quota'] || 100
-          if (quota > 0) {
-            history = storeHistory(history, curId, 'user', text)
-            const messages:any[] = history[curId].historyContext.slice(curUserConfig.historyContextNum * (-1))
-            if (curUserConfig.systemPrompt) {
-              messages.unshift({ content:curUserConfig.systemPrompt, role:'system' })
-            }
-            rePly = await getChatGPTReply(curUserConfig, messages)
-            await msg.say(rePly['content'])
+          if (textArr.length === 3 && textArr[0] === '#绑定') {
+            log.info('textArr', textArr)
+            const curUserConfig = getChatGPTConfig(textArr)
+            rePly = await getChatGPTReply(curUserConfig, [ { content:'你能干什么？', role:'user' } ])
             if (rePly['role'] !== 'err') {
+              rePlyText = '配置成功，已获得20次免费对话次数，我是你的智能助手~\n\n' + rePly['content']
+              history = storeHistory(history, curId, 'user', '你能干什么？')
               history = storeHistory(history, curId, rePly.role, rePly.content)
-              quota = quota - 1
-              curUserConfig['quota'] = quota
-              updateConfig(curId, curUserConfig)
+              updateConfig(curId, curUserConfig, whiteList, config, history)
             } else {
-              history[curId].historyContext.pop()
+              rePlyText = '输入的配置信息有误或权限不足，请使用key请求api验证配置信息是否正确后重试'
+            }
+            if (room || !isAdmin) {
+              await sendMessage(msg, rePlyText)
+            } else {
+              if (curContact) await sendMessage(curContact, rePlyText)
+            }
+          }
+          if (textArr.length === 2 && textArr[0] === '#发散度') {
+            log.info('textArr', textArr)
+            try {
+              const temperature = Number(textArr[1])
+              if (curUserConfig) {
+                curUserConfig['temperature'] = temperature
+                updateConfig(curId, curUserConfig, whiteList, config, history)
+                await sendMessage(msg, `分散度已设置为${temperature}`)
+              } else {
+                await sendMessage(msg, '未配置key，不能设置参数')
+              }
+            } catch (err) {
+              await sendMessage(msg, '指令格式有误，请检查后重新输入')
+            }
+          }
+          if (textArr.length === 2 && textArr[0] === '#系统提示词') {
+            log.info('textArr', textArr)
+            try {
+              const systemPrompt = String(textArr[1])
+              if (curUserConfig) {
+                if (systemPrompt === '清空') {
+                  curUserConfig['systemPrompt'] = ''
+                  updateConfig(curId, curUserConfig, whiteList, config, history)
+                  await sendMessage(msg, '系统提示词已清空')
+                } else {
+                  curUserConfig['systemPrompt'] = systemPrompt
+                  whiteList[curId] = curUserConfig
+                  config.whiteList = whiteList
+                  curHistory.historyContext = []
+                  curHistory.time = []
+                  history[curId] = curHistory
+                  await sendMessage(msg, `历史消息已清理，系统提示词已设置为：${systemPrompt}`)
+                }
+              } else {
+                await sendMessage(msg, '未配置key，不能设置参数')
+              }
+            } catch (err) {
+              await sendMessage(msg, '指令格式有误，请检查后重新输入')
+            }
+          }
+          if (textArr.length === 2 && textArr[0] === '#最大长度') {
+            log.info('textArr', textArr)
+            try {
+              const maxTokenNum = Number(textArr[1])
+              if (curUserConfig) {
+                curUserConfig['maxTokenNum'] = maxTokenNum
+                updateConfig(curId, curUserConfig, whiteList, config, history)
+                await sendMessage(msg, `最大长度已设置为${maxTokenNum}`)
+              } else {
+                await sendMessage(msg, '未配置key，不能设置参数')
+              }
+            } catch (err) {
+              await sendMessage(msg, '指令格式有误，请检查后重新输入')
+            }
+          }
+          if (textArr.length === 2 && textArr[0] === '#历史上下文数量') {
+            log.info('textArr', textArr)
+            try {
+              const historyContextNum = Number(textArr[1])
+              if (curUserConfig) {
+                curUserConfig['historyContextNum'] = historyContextNum
+                updateConfig(curId, curUserConfig, whiteList, config, history)
+                await sendMessage(msg, `历史上下文数量已设置为${historyContextNum}`)
+              } else {
+                await sendMessage(msg, '未配置key，不能设置参数')
+              }
+            } catch (err) {
+              await sendMessage(msg, '指令格式有误，请检查后重新输入')
+            }
+          }
+          if (textArr.length === 2 && textArr[0] === '#超时时间') {
+            log.info('textArr', textArr)
+            try {
+              const timeout = Number(textArr[1])
+              if (curUserConfig) {
+                curUserConfig['timeout'] = timeout
+                updateConfig(curId, curUserConfig, whiteList, config, history)
+                await sendMessage(msg, `超时时间已设置为${timeout}秒`)
+              } else {
+                await sendMessage(msg, '未配置key，不能设置参数')
+              }
+            } catch (err) {
+              await sendMessage(msg, '指令格式有误，请检查后重新输入')
+            }
+          }
+        } else {
+          let atName = currentUser.name()
+          if (room) {
+            const memberAlias =  await room.alias(currentUser)
+            if (memberAlias) {
+              atName = memberAlias
             }
           }
 
-          if (quota === 0) {
-            await msg.say('配额不足，请联系管理员充值')
+          const newText = extractAtContent(`@${atName}`, text)
+          if (newText !== null) {
+            text = newText
+            curUserConfig = {
+              endpoint: process.env['OPENAI_API_BASE_URL'],
+              historyContextNum: 6,
+              key: process.env['OPENAI_API_KEY'],
+              maxTokenNum: 2048,
+              systemPrompt: '',
+              temperature: 1,
+              timeout: 60,
+              userPrompt: '',
+              quota: 99,
+            }
           }
 
-        } else {
-          log.info('不在白名单内：', curId)
+          if (curUserConfig && text && !msg.self()) {
+            let quota = curUserConfig['quota'] || 20
+            if (quota > 0) {
+              let systemPrompt = curUserConfig.systemPrompt
+              if (text[0] === '%') {
+                const textArr = text.split(' ')
+                if (textArr[0] && textArr[0].length > 2) {
+                  const role = textArr[0].slice(1)
+                  systemPrompt = `下面我希望你来充当${role},你需要以${role}的角色身份尽可能客观、准确的回答问题，如果你不知道答案或问题超出你的知识范围，你需要如实承认不足而不是编造答案。`
+                }
+              }
+              history = storeHistory(history, curId, 'user', text)
+              const messages:any[] = history[curId].historyContext.slice(curUserConfig.historyContextNum * (-1))
+              if (systemPrompt) {
+                messages.unshift({ content:systemPrompt, role:'system' })
+              }
+              rePly = await getChatGPTReply(curUserConfig, messages)
+              await sendMessage(msg, rePly['content'])
+              if (rePly['role'] !== 'err') {
+                history = storeHistory(history, curId, rePly.role, rePly.content)
+                quota = quota - 1
+                curUserConfig['quota'] = quota
+                updateConfig(curId, curUserConfig, whiteList, config, history)
+              } else {
+                history[curId].historyContext.pop()
+              }
+            }
+
+            if (quota === 0) {
+              await sendMessage(msg, '余额不足，请充值\n直接发送红包获取积分：\n￥1 = 20次\n￥5 = 120次\n￥10 = 250次')
+            }
+
+          } else {
+            log.info('不在白名单内：', curId)
+          }
         }
       }
+    } catch (err) {
+      log.error('onMessage err:', err)
     }
-  } catch (err) {
-    log.error('onMessage err:', err)
+  } else {
+    log.info('重复消息')
   }
 
 }
@@ -669,8 +542,31 @@ switch (puppet) {
 const bot = WechatyBuilder.build(ops)
 bot.on('scan',    onScan)
 bot.on('login',   onLogin)
+bot.on('ready',   onReady)
 bot.on('logout',  onLogout)
 bot.on('message', onMessage)
+bot.on('friendship', async friendship => {
+  try {
+    switch (friendship.type()) {
+
+      // 1. New Friend Request
+
+      case bot.Friendship.Type.Receive:
+        await friendship.accept()
+        await friendship.contact().say('你好，我是你的智能助手瓦力。发送 #帮助 获取操作说明')
+        break
+
+        // 2. Friend Ship Confirmed
+
+      case bot.Friendship.Type.Confirm:
+        log.info('case bot.Friendship.Type.Confirm:', '好友请求被确认')
+        await friendship.contact().say('你好，我是你的智能助手瓦力。发送 #帮助 获取操作说明~')
+        break
+    }
+  } catch (e) {
+    console.error(e)
+  }
+})
 
 bot.start()
   .then(() => log.info('StarterBot', 'Starter Bot Started.'))
@@ -681,135 +577,10 @@ const router = new Router()
 app.use(cors())
 app.use(bodyParser())
 
-async function getAvatarUrl (params:Contact|Room) {
-  try {
-    return JSON.parse(JSON.stringify(await params.avatar()))['url']
-  } catch (e) {
-    return ''
-  }
-}
-
-async function getPhone (contact:Contact) {
-  try {
-    return (await contact.phone()).length ? (await contact.phone())[0] : '--'
-  } catch (e) {
-    return ''
-  }
-}
-
-type NewContact = {
-  avatar: string;
-  gender: types.ContactGender;
-  group_id: number;
-  id: string;
-  is_online: number;
-  motto: string;
-  nickname: string;
-  remark: string;
-}
-
-async function getAllContacts () {
-  const contacts = await bot.Contact.findAll()
-  const newContacts: NewContact[] = await Promise.all(
-    contacts.map(async (contact) => ({
-      avatar: await getAvatarUrl(contact) || 'https://im.gzydong.club/public/media/image/avatar/20230516/c5039ad4f29de2fd2c7f5a1789e155f5_200x200.png',
-      gender: contact.gender(),
-      group_id: 0,
-      id: contact.id,
-      is_online: 0,
-      motto: '',
-      nickname: contact.name(),
-      remark: await contact.alias() || '',
-    })),
-  )
-  return newContacts
-}
-
-type NewRoom = {
-  avatar: string;
-  group_name: string;
-  id: string;
-  is_disturb: number;
-  leader: string | undefined;
-  profile: string;
-};
-
-async function getAllRooms () {
-  const rooms = await bot.Room.findAll()
-  const newRooms: NewRoom[] = await Promise.all(
-    rooms.map(async (room: Room) => ({
-      avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/avatar/20230516/c5039ad4f29de2fd2c7f5a1789e155f5_200x200.png', // 设置群组头像
-      group_name: await room.topic(),
-      id: room.id,
-      is_disturb: 0, // 设置群组是否免打扰
-      leader: room.owner()?.id, // 设置群组领导人
-      profile: await room.announce(), // 设置群组简介
-    })),
-  )
-  return newRooms
-}
-
-// 登录认证
-
-const ACCESS_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJndWFyZCI6ImFwaSIsImlzcyI6ImltLndlYiIsImV4cCI6MTcyMTA3MDkwNCwiaWF0IjoxNjg1MDcwOTA0LCJqdGkiOiIyMDU0In0.-Mk4a20gur-QPxlYjgYc_eHWpWkDURJTawO0yBQ_b2g'
-  type LoginRequest = {
-    mobile: string;
-    password: string;
-    platform: string;
-  };
-
-  type LoginResponse = {
-    code: number;
-    message: string;
-    data: {
-      access_token: string;
-      expires_in: number;
-      type: string;
-    };
-  };
-
-router.post('/api/v1/auth/login', async (ctx: any) => {
-  const requestBody: LoginRequest = ctx.request.body
-  const { mobile, password, platform } = requestBody
-
-  // Check credentials and generate access token
-  // 假设存在一个根据手机号和密码验证用户的异步函数 authenticateUser
-  const isAuthenticated = await authenticateUser(mobile, password)
-
-  if (isAuthenticated) {
-    const response: LoginResponse = {
-      code: 200,
-      data: {
-        access_token: ACCESS_TOKEN,
-        expires_in: 36000000,
-        type: 'Bearer',
-      },
-      message: 'success',
-    }
-    ctx.body = response
-  } else {
-    const response = {
-      code: 401,
-      data: {},
-      message: 'Invalid credentials',
-    }
-    ctx.body = response
-  }
-})
-
-async function authenticateUser (mobile:string, password:string) {
-
-  if (mobile === '18798272054' && password === 'admin123') {
-    return true
-  } else {
-    return false
-  }
-
-}
-
 // 获取联系人列表
 router.get('/api/v1/contact/list', async (ctx: any) => {
-  const newContacts: NewContact[] = await getAllContacts()
+  // log.info('/api/v1/contact/list:', JSON.stringify(ctx))
+  const newContacts: NewContact[] = await getAllContacts(bot) as  NewContact[]
   contactList = newContacts
   const response = {
     code: 200,
@@ -824,7 +595,7 @@ router.get('/api/v1/contact/list', async (ctx: any) => {
 
 // 获取群列表
 router.get('/api/v1/group/list', async (ctx: any) => {
-  const newRooms: NewRoom[] = await getAllRooms()
+  const newRooms: NewRoom[] = await getAllRooms(bot)
   roomList = newRooms
   const response = {
     code: 200,
@@ -838,18 +609,6 @@ router.get('/api/v1/group/list', async (ctx: any) => {
 })
 
 // 获取群详情
-type RoomDetail = {
-  avatar: string;
-  created_at: string;
-  group_id: string;
-  group_name: string;
-  is_disturb: number,
-  is_manager: boolean,
-  manager_nickname:string | undefined,
-  profile: string,
-  visit_card: string
-};
-
 router.get('/api/v1/group/detail', async (ctx: any) => {
   const groupId: string = ctx.query.group_id
 
@@ -925,20 +684,6 @@ router.get('/api/v1/group/member/list', async (ctx: any) => {
 })
 
 // 获取联系人详情
-type ContactDetail = {
-  avatar: string;
-  email: string;
-  friend_apply: number;
-  friend_status: number;
-  gender: number;
-  group_id: number;
-  id: string;
-  mobile: string | undefined;
-  motto: string | undefined;
-  nickname: string;
-  remark: string | undefined;
-};
-
 router.get('/api/v1/users/detail', async (ctx: any) => {
   const userId: string = ctx.query.user_id
 
@@ -984,7 +729,6 @@ router.get('/api/v1/users/detail', async (ctx: any) => {
 })
 
 router.get('/api/v1/users/setting', async (ctx: any) => {
-
   // 假设存在一个根据 userId 查找对应联系人的异步函数 findContactById
   const contact: Contact = bot.currentUser
   const contactDetail = {
@@ -1085,6 +829,7 @@ type ApplyRecord = {
 // This function is a placeholder to retrieve contact apply records.
 const getApplyRecords = async (page: number, pageSize: number): Promise<ApplyRecord[]> => {
   // Implement this function to retrieve the apply records
+  log.info('请求参数：', page, pageSize)
   return [] // Return an array of apply records
 }
 
@@ -1178,7 +923,7 @@ const getTalkRecords = async (
 ): Promise<TalkRecord[]> => {
   // Implement this function to retrieve the talk records based on query parameters
   const records = recordsDir[receiverId]
-  log.info('聊天记录：', records)
+  log.info('聊天记录：', records, receiverId, talkType, limit, recordId)
   return records || [] // Return an array of talk records
 }
 
@@ -1205,16 +950,17 @@ router.get('/api/v1/talk/records', async (ctx) => {
 
 router.post('/api/v1/talk/message/text', async (ctx) => {
   const requestBody: SendTextRequest = ctx.request.body as SendTextRequest
-  await updateChatsReply(requestBody)
+  await updateChatsReply(bot, requestBody, recordsDir, chats, webClient)
   if (requestBody.talk_type === 2) {
     const room = await bot.Room.find({ id: requestBody.receiver_id })
-    await room?.say(requestBody.text)
+    if (room) await sendMessage(room, requestBody.text)
     const response = { code:200, message:'success' }
     ctx.set('Content-Type', 'application/json; charset=utf-8')
     ctx.body = response
   } else if (requestBody.talk_type === 1) {
     const contact = await bot.Contact.find({ id: requestBody.receiver_id })
-    await contact?.say(requestBody.text)
+    if (contact) await sendMessage(contact, requestBody.text)
+
     const response = { code:200, message:'success' }
     ctx.set('Content-Type', 'application/json; charset=utf-8')
     ctx.body = response
@@ -1230,11 +976,14 @@ router.post('/api/v1/talk/message/text', async (ctx) => {
 
 })
 
+// 路由
+AppRoutes.forEach((route) => (router as any)[route.method](route.path, route.action))
+
 app.use(router.routes())
 
-app.listen(9503)
+app.listen(process.env['HTTP_PORT'] || 9503)
 
-log.info('http server running on http://127.0.0.1:9503')
+log.info(`http server running on http://127.0.0.1:${process.env['HTTP_PORT'] || 9503}`)
 
 // ws服务
 const appWs = websockify(new Koa())
@@ -1283,20 +1032,12 @@ routerWs.get('/wss/default.io', async (ctx: any) => {
   }
 })
 
-function validateToken (token: string) {
-  if (token === ACCESS_TOKEN) {
-    return true
-  } else {
-    return false
-  }
-}
-
 // @ts-ignore
 appWs.ws.use(routerWs.routes())
 
 // @ts-ignore
 appWs.ws.use(routerWs.allowedMethods())
 
-appWs.listen(9504, () => {
-  log.info('WebSocket server running on ws://127.0.0.1:9504')
+appWs.listen(process.env['WS_PORT'] || 9504, () => {
+  log.info(`WebSocket server running on ws://127.0.0.1:${process.env['WS_PORT'] || 9504}`)
 })

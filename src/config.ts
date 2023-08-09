@@ -10,26 +10,52 @@ const baseConfig:BaseConfig = {
   admin:{
     name:'管理员信息',
     items:{
+      roomTopic: {
+        name:'管理员群',
+        value:process.env['ADMIN_ROOM_TOPIC'] || '', // 管理群名称
+      },
+      wxName: {
+        name:'管理员微信',
+        value:process.env['ADMIN_WX_NAME'] || '', // 管理员微信昵称
+      },
       roomid: {
-        name:'管理员群ID',
-        value:process.env['admin_roomid'] || '', // 管理群ID
+        name:'管理员群',
+        value:process.env['ADMIN_ROOM_ID'] || '', // 管理群名称
       },
       wxid: {
-        name:'管理员微信ID',
-        value:process.env['admin_wxid'] || '', // 管理员微信ID
+        name:'管理员微信',
+        value:process.env['ADMIN_WX_ID'] || '', // 管理员微信昵称
       },
     },
+  },
+  baiduvop: {
+    name: '百度云语音转文字服务',
+    items:{
+      ak: {
+        name:'Access Key',
+        value:process.env['BAIDUVOP_AK'] || '', // 百度云语音转文字接口ak
+      },
+      sk: {
+        name:'Secret Key',
+        value:process.env['BAIDUVOP_SK'] || '', // 百度云语音转文字接口sk
+      },
+    },
+
   },
   openai:{
     name:'ChatGPT配置信息',
     items:{
       endpoint: {
         name:'API地址',
-        value:process.env['openai_endpoint'] || 'https://api.openai-proxy.com', // openai api地址
+        value:process.env['OPENAI_API_BASE_URL'] || 'https://api.openai.com',
       },
       key: {
         name:'API密钥',
-        value:process.env['openai_key'] || '', // openai api密钥
+        value:process.env['OPENAI_API_KEY'] || '',
+      },
+      model: {
+        name:'模型版本',
+        value:process.env['OPENAI_MODEL'] || '',
       },
 
     },
@@ -40,11 +66,11 @@ const baseConfig:BaseConfig = {
     items:{
       puppet: {
         name:'Puppet名称',
-        value:process.env['wechaty_puppet'] || 'wechaty-puppet-wechat', // wechaty-puppet-padlocal、wechaty-puppet-service、wechaty-puppet-wechat、wechaty-puppet-wechat4u、wechaty-puppet-xp（运行npm run wechaty-puppet-xp安装）
+        value:process.env['WECHATY_PUPPET'] || 'wechaty-puppet-wechat4u', // wechaty-puppet-padlocal、wechaty-puppet-service、wechaty-puppet-wechat、wechaty-puppet-wechat4u、wechaty-puppet-xp（运行npm run wechaty-puppet-xp安装）
       },
       token:{
         name:'PuppetToken',
-        value: process.env['wechaty_token'] || '', // wechaty token
+        value: process.env['WECHATY_TOKEN'] || '', // wechaty token
       },
     },
 
@@ -140,3 +166,7 @@ export {
   storeHistory,
   baseConfig,
 }
+
+// "wechaty-puppet-padlocal": "^1.20.1",
+// "wechaty-puppet-wechat4u": "^1.13.15",
+// "wechaty-puppet-wechat": "^1.18.4",

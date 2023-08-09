@@ -129,5 +129,8 @@ dist
 .yarn/install-state.gz
 .pnp.*
 package-lock.json
-src/config.ts
 .DS_Store
+data/*.json
+data/*.db
+*.memory-card.json
+output/*
