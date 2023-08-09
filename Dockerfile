@@ -13,13 +13,5 @@ RUN npm ci --only=production
 # 复制当前目录下的所有文件到工作目录
 COPY . .
 
-# 构建应用
-RUN npm run build
-
-# 清理不需要的文件
-RUN rm -rf node_modules && \
-    rm -f package*.json && \
-    rm -f package-lock.json
-
 # 启动应用
 CMD ["npm", "run", "start"]
