@@ -2,10 +2,10 @@
 
 WechatGPT是一个使用微信充当ChatGPT对话窗口的工具,目前已实现的功能：
 
-- #指令 唤起操作指南
-- 支持通过关键字指令设置key及接口调用参数，目前已支持openai、api2d接入
+- 支持用户 #开通服务
+- 支持为指定用户充值
 - 支持使用语音与gpt对话
-- 支持设置系统提醒词
+- 支持设置系统提醒词 %医生 轻度感冒需要如何治疗
 
 ## 启动项目
 
@@ -34,12 +34,15 @@ npm start
 
 ```
 HTTP_PORT=9503
-WX_PORT=9504
+WS_PORT=9504
 OPENAI_API_KEY=ADD_YOUR_VALUE
+OPENAI_API_BASE_URL=https://api.openai-proxy.com
 OPENAI_MODEL=gpt-3.5-turbo
-OPENAI_ENDPOINT=https://api.openai-proxy.com
-ADMIN_ROOMID=ADD_YOUR_VALUE
-ADMIN_WXID=ADD_YOUR_VALUE
+OPENAI_ENDPOINT=https://api.openai-proxy.com/v1/chat/completions
+ADMIN_ROOM_TOPIC=ADD_YOUR_VALUE
+ADMIN_ROOM_ID=ADD_YOUR_VALUE
+ADMIN_WX_NAME=ADD_YOUR_VALUE
+ADMIN_WX_ID=ADD_YOUR_VALUE
 BAIDUVOP_AK=ADD_YOUR_VALUE
 BAIDUVOP_SK=ADD_YOUR_VALUE
 WECHATY_PUPPET=wechaty-puppet-wechat4u
@@ -124,21 +127,37 @@ atorber/wechatgpt:v0.8.2
 
 ## 效果展示
 
+扫码添加好友体验
+
+<img src="./docs/6.jpg" width="30%" height="30%" />
+
+### 基本操作
+
+- 开通服务
+
+<img src="./docs/7.jpg" width="30%" height="30%" />
+
+- 开通服务
+
+<img src="./docs/8.jpg" width="30%" height="30%" />
+
+### 高级操作
+
 - 指令说明
 
-<img src="./docs/4.jpeg" width="50%" height="50%" />
+<img src="./docs/4.jpeg" width="30%" height="30%" />
 
 - 绑定ChatGPT
 
-<img src="./docs/2.jpeg" width="50%" height="50%" />
+<img src="./docs/2.jpeg" width="30%" height="30%" />
 
 - 对话聊天
 
-<img src="./docs/3.jpeg" width="50%" height="50%" />
+<img src="./docs/3.jpeg" width="30%" height="30%" />
 
 - 设定参数
 
-<img src="./docs/5.jpeg" width="50%" height="50%" />
+<img src="./docs/5.jpeg" width="30%" height="30%" />
 
 ## 关于封号
 
