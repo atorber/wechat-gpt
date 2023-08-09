@@ -16,16 +16,16 @@ WechatGPT是一个使用微信充当ChatGPT对话窗口的工具,目前已实现
 ```
 HTTP_PORT=9503
 WS_PORT=9504
-OPENAI_API_KEY=ADD_YOUR_VALUE
-OPENAI_API_BASE_URL=https://api.openai-proxy.com
-OPENAI_MODEL=gpt-3.5-turbo
-OPENAI_ENDPOINT=https://api.openai-proxy.com/v1/chat/completions
-ADMIN_ROOM_TOPIC=ADD_YOUR_VALUE
-ADMIN_ROOM_ID=ADD_YOUR_VALUE
-ADMIN_WX_NAME=ADD_YOUR_VALUE
-ADMIN_WX_ID=ADD_YOUR_VALUE
-WECHATY_PUPPET=wechaty-puppet-wechat4u
-WECHATY_TOKEN=ADD_YOUR_VALUE
+OPENAI_API_KEY=ADD_YOUR_VALUE # 你的openai key
+OPENAI_API_BASE_URL=https://api.openai-proxy.com # 对应的openai接入点
+OPENAI_MODEL=gpt-3.5-turbo # llm模型
+OPENAI_ENDPOINT=https://api.openai-proxy.com/v1/chat/completions # openai接入点
+ADMIN_ROOM_TOPIC=ADD_YOUR_VALUE # 选填，管理员群名称
+ADMIN_ROOM_ID=ADD_YOUR_VALUE # 选填，管理员群ID
+ADMIN_WX_NAME=ADD_YOUR_VALUE # 选填，管理员昵称
+ADMIN_WX_ID=ADD_YOUR_VALUE # 选填，管理员微信ID
+WECHATY_PUPPET=wechaty-puppet-wechat # wechaty puppet
+WECHATY_TOKEN=ADD_YOUR_VALUE # wechaty token
 ```
 
 2.安装依赖及启动
