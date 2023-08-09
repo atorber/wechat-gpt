@@ -129,35 +129,35 @@ atorber/wechatgpt:v0.8.2
 
 扫码添加好友体验
 
-<img src="./docs/6.jpg" width="50%" height="50%" />
+<img src="./docs/6.jpg" width="30%" height="30%" />
 
 ### 基本操作
 
 - 开通服务
 
-<img src="./docs/7.jpg" width="50%" height="50%" />
+<img src="./docs/7.jpg" width="30%" height="30%" />
 
 - 开通服务
 
-<img src="./docs/8.jpg" width="50%" height="50%" />
+<img src="./docs/8.jpg" width="30%" height="30%" />
 
 ### 高级操作
 
 - 指令说明
 
-<img src="./docs/4.jpeg" width="50%" height="50%" />
+<img src="./docs/4.jpeg" width="30%" height="30%" />
 
 - 绑定ChatGPT
 
-<img src="./docs/2.jpeg" width="50%" height="50%" />
+<img src="./docs/2.jpeg" width="30%" height="30%" />
 
 - 对话聊天
 
-<img src="./docs/3.jpeg" width="50%" height="50%" />
+<img src="./docs/3.jpeg" width="30%" height="30%" />
 
 - 设定参数
 
-<img src="./docs/5.jpeg" width="50%" height="50%" />
+<img src="./docs/5.jpeg" width="30%" height="30%" />
 
 ## 关于封号
 
