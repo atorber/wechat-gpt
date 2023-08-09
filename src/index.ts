@@ -8,8 +8,12 @@ import { getChatGPTReply } from './chatgpt.js'
 // import { getCurrentFormattedDate } from './utils/mod.js'
 import type { SendTextRequest } from './types/mod.js'
 import { v4 as uuidv4 } from 'uuid'
-import { messageStructuring, addMessage, extractAtContent } from './api/message.js'
-import type { MessageActions, Action } from './types/messageActionsSchema'
+import {
+  // messageStructuring,
+  addMessage,
+  extractAtContent,
+} from './api/message.js'
+// import type { MessageActions, Action } from './types/messageActionsSchema'
 import {
   getAvatarUrl,
   updateChats,
@@ -142,35 +146,33 @@ function onLogout (user: Contact) {
 
 async function onMessage (msg: Message) {
   log.info('onMessage', JSON.stringify(msg))
-
   const talker = msg.talker()
-  log.info('talker:', JSON.stringify(talker, undefined, 2))
-  const alias = await talker.alias()
-  log.info('roomInfo:', '========================================')
-  log.info('await talker.alias()可用，talker alias:', alias)
-  log.info('roomInfo:', '========================================')
-
   const room = msg.room()
-  if (room) {
-    log.info('room:', JSON.stringify(room, undefined, 2))
-    const memberAlias =  await room.alias(currentUser)
-    const has = await room.has(talker)
-    const member = await room.member('luyuchao1')
-    log.info('roomInfo:', '========================================')
-    log.info('const memberAlias =  await room.alias(currentUser):', memberAlias || undefined)
-    log.info('const has = await room.has(talker):', has)
-    log.info('const member = await room.member(\'luyuchao\'):', member)
-    log.info('roomInfo:', '========================================')
-  }
+  let text = msg.text()
+  if (text === '帮助') text = '#帮助'
+  log.info('talker:', JSON.stringify(talker))
+  // const alias = await talker.alias()
+  // log.info('roomInfo:', '========================================')
+  // log.info('await talker.alias()可用，talker alias:', alias)
+  // log.info('roomInfo:', '========================================')
+
+  // const room = msg.room()
+  // if (room) {
+  //   log.info('room:', JSON.stringify(room, undefined, 2))
+  //   const memberAlias =  await room.alias(currentUser)
+  //   const has = await room.has(talker)
+  //   const member = await room.member('luyuchao1')
+  //   log.info('roomInfo:', '========================================')
+  //   log.info('const memberAlias =  await room.alias(currentUser):', memberAlias || undefined)
+  //   log.info('const has = await room.has(talker):', has)
+  //   log.info('const member = await room.member(\'luyuchao\'):', member)
+  //   log.info('roomInfo:', '========================================')
+  // }
 
   await updateChats(msg, recordsDir, chats, webClient)
   const addRes = await addMessage(msg)
   if (addRes) {
     try {
-      const talker = msg.talker()
-      const room = msg.room()
-      let text = msg.text()
-
       let rePly:any = {}
       let rePlyText:string = ''
       let curId = ''
@@ -437,38 +439,6 @@ async function onMessage (msg: Message) {
               await sendMessage(msg, '指令格式有误，请检查后重新输入')
             }
           }
-        } else if (text[0] === '/') {
-          const textArr = text.split(' ')
-          if (textArr[0] === '/llm') {
-            const res: MessageActions = await messageStructuring(msg.text())
-            log.info('res:', JSON.stringify(res))
-            if (res.actions.length) {
-              const textMsg:Action|undefined = res.actions[0]
-              if (textMsg?.actionType === 'sendMessage') {
-                let toUser = await bot.Contact.find({ alias:textMsg.event.contacts[0] })
-                if (toUser) {
-                  toUser = await bot.Contact.find({ name:textMsg.event.contacts[0] })
-                }
-                log.info('toUser:', JSON.stringify(toUser))
-                if (toUser) {
-                  await sendMessage(toUser, textMsg.event.text)
-
-                  await sendMessage(msg, '已完成')
-                } else {
-                  await sendMessage(msg, '未找到联系人')
-                }
-              }
-              if (textMsg?.actionType === 'sendRoomMessage') {
-                const toUser = await bot.Room.find({ topic:textMsg.event.rooms[0] })
-                if (toUser) {
-                  await sendMessage(toUser, textMsg.event.text)
-                  await sendMessage(msg, '已完成')
-                } else {
-                  await sendMessage(msg, '未找到群')
-                }
-              }
-            }
-          }
         } else {
           let atName = currentUser.name()
           if (room) {
@@ -493,13 +463,22 @@ async function onMessage (msg: Message) {
               quota: 99,
             }
           }
+
           if (curUserConfig && text && !msg.self()) {
             let quota = curUserConfig['quota'] || 20
             if (quota > 0) {
+              let systemPrompt = curUserConfig.systemPrompt
+              if (text[0] === '%') {
+                const textArr = text.split(' ')
+                if (textArr[0] && textArr[0].length > 2) {
+                  const role = textArr[0].slice(1)
+                  systemPrompt = `下面我希望你来充当${role},你需要以${role}的角色身份尽可能客观、准确的回答问题，如果你不知道答案或问题超出你的知识范围，你需要如实承认不足而不是编造答案。`
+                }
+              }
               history = storeHistory(history, curId, 'user', text)
               const messages:any[] = history[curId].historyContext.slice(curUserConfig.historyContextNum * (-1))
-              if (curUserConfig.systemPrompt) {
-                messages.unshift({ content:curUserConfig.systemPrompt, role:'system' })
+              if (systemPrompt) {
+                messages.unshift({ content:systemPrompt, role:'system' })
               }
               rePly = await getChatGPTReply(curUserConfig, messages)
               await sendMessage(msg, rePly['content'])
