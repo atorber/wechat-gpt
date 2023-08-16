@@ -149,7 +149,13 @@ async function onMessage (msg: Message) {
   const talker = msg.talker()
   const room = msg.room()
   let text = msg.text()
+
+  // 保留字转换，将保留字转换为内部指令
   if (text === '帮助') text = '#帮助'
+  if (text === '开通服务') text = '#开通服务'
+  if (text === '积分充值') text = '#积分充值'
+  if (text === '联系客服') text = '#联系客服'
+
   log.info('talker:', JSON.stringify(talker))
   // const alias = await talker.alias()
   // log.info('roomInfo:', '========================================')
@@ -281,7 +287,7 @@ async function onMessage (msg: Message) {
 
           // 用户操作指令
           const advancedText = `操作指令：\n\n${KeyWords.BingdText}\n\n${KeyWords.TemperatureText}\n\n${KeyWords.MaxTokenText}\n\n${KeyWords.HistoryContextNumText}\n\n${KeyWords.TimeoutText}\n\n${KeyWords.SystemPromptText}\n\n发送 ${KeyWords.ClearHistory} 清理历史消息\n\n发送 ${KeyWords.ExportFile} 可导出最近历史聊天记录为word文档`
-          const helpText = '发送如下消息可以完成对应操作：\n#开通服务 开启机器人服务\n#积分充值 购买问答积分\n#查询积分 查询余额\n#联系客服 联系客服微信'
+          const helpText = '发送如下指令消息可以完成对应操作：\n开通服务 开启智能问答服务\n积分充值 获得问答积分\n查询积分 查询当前余额\n联系客服 联系客服微信'
           switch (text) {
             case KeyWords.Advanced:
               await sendMessage(msg, advancedText)
@@ -468,11 +474,18 @@ async function onMessage (msg: Message) {
             let quota = curUserConfig['quota'] || 20
             if (quota > 0) {
               let systemPrompt = curUserConfig.systemPrompt
-              if (text[0] === '%') {
+              if (text[0] && (text[0] === '*' || text[0].startsWith('[微笑]'))) {
                 const textArr = text.split(' ')
                 if (textArr[0] && textArr[0].length > 2) {
-                  const role = textArr[0].slice(1)
+                  let role = ''
+                  if (text[0] === '*') {
+                    role = textArr[0].slice(1)
+                  } else {
+                    role = textArr[0].slice(4)
+                  }
+
                   systemPrompt = `下面我希望你来充当${role},你需要以${role}的角色身份尽可能客观、准确的回答问题，如果你不知道答案或问题超出你的知识范围，你需要如实承认不足而不是编造答案。`
+                  text = text.slice(textArr[0].length)
                 }
               }
               history = storeHistory(history, curId, 'user', text)
@@ -553,14 +566,14 @@ bot.on('friendship', async friendship => {
 
       case bot.Friendship.Type.Receive:
         await friendship.accept()
-        await friendship.contact().say('你好，我是你的智能助手瓦力。发送 #帮助 获取操作说明')
+        await friendship.contact().say('你好，我是你的智能助手瓦力。发送 帮助 获取操作说明')
         break
 
         // 2. Friend Ship Confirmed
 
       case bot.Friendship.Type.Confirm:
         log.info('case bot.Friendship.Type.Confirm:', '好友请求被确认')
-        await friendship.contact().say('你好，我是你的智能助手瓦力。发送 #帮助 获取操作说明~')
+        await friendship.contact().say('你好，我是你的智能助手瓦力。发送 帮助 获取操作说明~')
         break
     }
   } catch (e) {
@@ -881,7 +894,7 @@ type CreateTalkRequest = {
 router.post('/api/v1/talk/create', async (ctx) => {
   const requestBody: CreateTalkRequest = ctx.request.body as CreateTalkRequest
   const chatId = `${requestBody.talk_type}_${requestBody.receiver_id}`
-  const chat = chats[chatId]
+  const chat = chats[chatId] || {}
   chat['content'] = ''
   chat['draft_text'] = ''
   chat['index_name'] = chatId
