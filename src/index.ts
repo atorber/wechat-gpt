@@ -151,10 +151,7 @@ async function onMessage (msg: Message) {
   let text = msg.text()
 
   // 保留字转换，将保留字转换为内部指令
-  if (text === '帮助') text = '#帮助'
-  if (text === '开通服务') text = '#开通服务'
-  if (text === '积分充值') text = '#积分充值'
-  if (text === '联系客服') text = '#联系客服'
+  if ([ '帮助', '开通服务', '积分充值', '联系客服', '查询积分' ].includes(text)) text = '#' + text
 
   log.info('talker:', JSON.stringify(talker))
   // const alias = await talker.alias()
