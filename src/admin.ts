@@ -6,7 +6,7 @@
 import {
   Wechaty,
   WechatyPlugin,
-  Message,
+  // Message,
   log,
   types,
 }                   from 'wechaty'

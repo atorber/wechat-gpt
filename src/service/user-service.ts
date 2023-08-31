@@ -40,7 +40,11 @@ export default class UserService {
 
   login = async (ctx: { request: { body: LoginRequest; }; body: { code: number; message: string; data: { access_token: string; expires_in: number; type: string; } | {}; }; }) => {
     const requestBody: LoginRequest = ctx.request.body
-    const { mobile, password, platform } = requestBody
+    const {
+      mobile,
+      password,
+      // platform,
+    } = requestBody
 
     // Check credentials and generate access token
     // 假设存在一个根据手机号和密码验证用户的异步函数 authenticateUser
