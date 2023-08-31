@@ -578,9 +578,22 @@ bot.on('friendship', async friendship => {
   }
 })
 
-bot.start()
-  .then(() => log.info('StarterBot', 'Starter Bot Started.'))
-  .catch(e => log.error('StarterBot', e))
+// bot.start()
+//   .then(() => log.info('StarterBot', 'Starter Bot Started.'))
+//   .catch(e => log.error('StarterBot', e))
+
+function startBot () {
+  bot.start()
+    .then(() => log.info('StarterBot', 'Starter Bot Started.'))
+    .catch(e => {
+      log.error('StarterBot', e)
+      // 等待一段时间后重启
+      setTimeout(startBot, 5000)  // 5秒后重启
+    })
+}
+
+// 启动 bot
+startBot()
 
 const app = new Koa()
 const router = new Router()
