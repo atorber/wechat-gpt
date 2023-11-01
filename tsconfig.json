@@ -1,6 +1,8 @@
 {
     "extends": "@chatie/tsconfig",
     "compilerOptions": {
+      "ignoreDeprecations": "5.0",
+      "esModuleInterop": true,
       "outDir": "dist"
     },
     "exclude": [

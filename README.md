@@ -9,121 +9,41 @@ WechatGPT是一个使用微信充当ChatGPT对话窗口的工具,目前已实现
 
 ## 启动项目
 
-> 首先重命名根目录下.env.example为.env
+1. 首先重命名根目录下.env.example为.env
 
-1.安装依赖及启动
+修改配置文件可更换puppet及openai key
+
+```
+HTTP_PORT=9503
+WS_PORT=9504
+OPENAI_API_KEY=ADD_YOUR_VALUE # 你的openai key
+OPENAI_API_BASE_URL=https://api.openai-proxy.com # 对应的openai接入点
+OPENAI_MODEL=gpt-3.5-turbo # llm模型
+OPENAI_ENDPOINT=https://api.openai-proxy.com/v1/chat/completions # openai接入点
+ADMIN_ROOM_TOPIC=ADD_YOUR_VALUE # 选填，管理员群名称
+ADMIN_ROOM_ID=ADD_YOUR_VALUE # 选填，管理员群ID
+ADMIN_WX_NAME=ADD_YOUR_VALUE # 选填，管理员昵称
+ADMIN_WX_ID=ADD_YOUR_VALUE # 选填，管理员微信ID
+WECHATY_PUPPET=wechaty-puppet-wechat # wechaty puppet
+WECHATY_TOKEN=ADD_YOUR_VALUE # wechaty token
+```
+
+2.安装依赖及启动
 
 ```
 npm i
 npm start
 ```
 
-2.扫描二维码登录微信
+3.扫描二维码登录微信
 
-3.使用任意微信发送 #帮助 可获取操作指令
-
-4.发送如下格式给机器人，完成ChatGPT配置
-
-```
-#绑定+sk-zsL0e6orgRxxxxxx3BlbkFJd2BxgPfl5aB2D7hFgeVA+https://api.openai.com 
-```
-
-> 已支持api2d，不用梯子可以使用的openai接口 https://api2d.com
-
-修改配置文件可更换puppet及配置百度云语音转文字接口ak、sk
-
-```
-HTTP_PORT=9503
-WS_PORT=9504
-OPENAI_API_KEY=ADD_YOUR_VALUE
-OPENAI_API_BASE_URL=https://api.openai-proxy.com
-OPENAI_MODEL=gpt-3.5-turbo
-OPENAI_ENDPOINT=https://api.openai-proxy.com/v1/chat/completions
-ADMIN_ROOM_TOPIC=ADD_YOUR_VALUE
-ADMIN_ROOM_ID=ADD_YOUR_VALUE
-ADMIN_WX_NAME=ADD_YOUR_VALUE
-ADMIN_WX_ID=ADD_YOUR_VALUE
-BAIDUVOP_AK=ADD_YOUR_VALUE
-BAIDUVOP_SK=ADD_YOUR_VALUE
-WECHATY_PUPPET=wechaty-puppet-wechat4u
-WECHATY_TOKEN=ADD_YOUR_VALUE
-```
-
-> 百度云语音转文字接口开通详见官网 [语音转文字](https://ai.baidu.com/tech/speech?track=b6d7c141cb9ed59bcbbc91553767924a6c41a067cf9e9572)
-
-## 安装及启用语音转文字插件
-
-详细步骤参考 https://github.com/Ang-YC/wx-voice
-
-> 成功安装插件后可在index.ts中解除注释，使用语音与gpt聊天问答
-
-1. 安装依赖
-
-```
-npm install wx-voice --save
-npm install wx-voice -g
-wx-voice compile
-```
-
-2. 安装ffmpeg（Windows操作系统安装方式及环境变量设置自行百度）
-
-Ubuntu
-
-```
-sudo add-apt-repository ppa:mc3man/trusty-media  
-sudo apt-get update  
-sudo apt-get install ffmpeg
-```
-
-CentOS
-
-```
-sudo yum install epel-release
-sudo yum update
-sudo rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro
-```
-
-For CentOS 7:
-
-```
-sudo rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-5.el7.nux.noarch.rpm
-```
-
-For CentOS 6:
-
-```
-sudo rpm -Uvh http://li.nux.ro/download/nux/dextop/el6/x86_64/nux-dextop-release-0-2.el6.nux.noarch.rpm
-```
-
-Install FFMPEG:
-
-```
-sudo yum install ffmpeg
-```
-
-Mac
-
-```
-brew install ffmpeg
-```
+4.使用任意微信发送 #帮助 可获取操作指令
 
 ## Docker部署
 
 ```
-docker run -d 
---restart=always 
---env WECHATY_PUPPET="wechaty-puppet-wechat4u" 
---env WECHATY_TOKEN="wehcaty token" 
---env BAIDUVOP_AK="百度语音转文字服务ak"
---env BAIDUVOP_AK="百度语音转文字服务sk"
---env ADMIN_WXID="管理员微信ID"
---env OPENAI_API_KEY="你的openai api key"
-atorber/wechatgpt:v0.8.2
+atorber/wechatgpt:v0.14.1-thin
 ```
-
-## 机器人协议支持
-
-可参考 [wechat-openai-qa-bot](https://github.com/choogoo/wechat-openai-qa-bot) 项目关于wechaty机器人协议的支持，自行切换至其他协议 https://www.yuque.com/atorber/oegota/hgmhxclivlwn090z
 
 ## 效果展示
 
@@ -147,7 +67,11 @@ atorber/wechatgpt:v0.8.2
 
 <img src="./docs/4.jpeg" width="30%" height="30%" />
 
-- 绑定ChatGPT
+- 绑定自有openai key
+
+```
+#绑定+sk-zsL0e6orgRxxxxxx3BlbkFJd2BxgPfl5aB2D7hFgeVA+https://api.openai.com 
+```
 
 <img src="./docs/2.jpeg" width="30%" height="30%" />
 
@@ -158,6 +82,10 @@ atorber/wechatgpt:v0.8.2
 - 设定参数
 
 <img src="./docs/5.jpeg" width="30%" height="30%" />
+
+## 机器人协议支持
+
+可参考 [wechat-openai-qa-bot](https://github.com/choogoo/wechat-openai-qa-bot) 项目关于wechaty机器人协议的支持，自行切换至其他协议 https://www.yuque.com/atorber/oegota/hgmhxclivlwn090z
 
 ## 关于封号
 
@@ -208,9 +136,3 @@ v0.6.0
 v0.5.0
 
 - 新增 #导出文件 功能，发送指令可导出最近消息为word文件
-
-## 工具
-
-安装语音转化 https://github.com/Ang-YC/wx-voice
-
-mac安装 brew install ffmpeg https://blog.csdn.net/weixin_42238038/article/details/122283307
