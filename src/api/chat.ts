@@ -352,7 +352,8 @@ export async function getAllContacts (bot:Wechaty) {
   const contacts = await bot.Contact.findAll()
   const newContacts: (NewContact|null)[] = await Promise.all(
     contacts.map(async (contact) => {
-      if (await contact.friend()) {
+      const isFriend = contact.friend()
+      if (isFriend) {
         return {
           avatar: await getAvatarUrl(contact) || 'https://im.gzydong.club/public/media/image/avatar/20230516/c5039ad4f29de2fd2c7f5a1789e155f5_200x200.png',
           gender: contact.gender(),

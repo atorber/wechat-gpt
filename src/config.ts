@@ -166,6 +166,3 @@ export {
   storeHistory,
   baseConfig,
 }
-
-// "wechaty-puppet-padlocal": "^1.20.1",
-// "wechaty-puppet-wechat4u": "^1.13.15",
