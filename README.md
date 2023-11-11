@@ -1,6 +1,6 @@
-# WechatGPT
+# WeChatGPT
 
-WechatGPT是一个使用微信充当ChatGPT对话窗口的工具,目前已实现的功能：
+WeChatGPT是一个使用微信充当ChatGPT对话窗口的工具,目前已实现的功能：
 
 - 支持用户 #开通服务
 - 支持为指定用户充值
