@@ -1,7 +1,7 @@
 #!/usr/bin/env -S node --no-warnings --loader ts-node/esm
 /* eslint-disable sort-keys */
 import 'dotenv/config.js'
-import { Contact, Message, ScanStatus, types, WechatyBuilder, log, Room, Sayable } from 'wechaty'
+import { Contact, Message, ScanStatus, types, WechatyBuilder, log, Room, Sayable, Wechaty } from 'wechaty'
 import qrcodeTerminal from 'qrcode-terminal'
 import { baseConfig, getConfig, getHistory, getTalk, getRecord, saveConfigFile, updateHistory, updateRecord, updateTalk, updateData, getChatGPTConfig, storeHistory } from './config.js'
 import { getChatGPTReply } from './chatgpt.js'
@@ -546,18 +546,18 @@ bot.on('friendship', async friendship => {
 //   .then(() => log.info('StarterBot', 'Starter Bot Started.'))
 //   .catch(e => log.error('StarterBot', e))
 
-function startBot () {
+function startBot (bot:Wechaty) {
   bot.start()
     .then(() => log.info('StarterBot', 'Starter Bot Started.'))
     .catch(e => {
       log.error('StarterBot', e)
       // 等待一段时间后重启
-      setTimeout(startBot, 5000)  // 5秒后重启
+      setTimeout(startBot(bot), 5000)  // 5秒后重启
     })
 }
 
 // 启动 bot
-startBot()
+startBot(bot)
 
 const app = new Koa()
 const router = new Router()
