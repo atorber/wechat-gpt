@@ -1,6 +1,6 @@
 {
   "name": "WechatGPT",
-  "version": "0.14.5",
+  "version": "0.14.6",
   "description": "wechat & chatgpt",
   "type": "module",
   "engines": {
@@ -43,13 +43,13 @@
     "request": "^2.88.2",
     "type-fest": "^4.2.0",
     "typechat": "^0.0.10",
+    "typescript": "^5.1.6",
     "uuid": "^9.0.0",
     "wechaty": "^1.20.2",
     "wechaty-puppet-padlocal": "^1.20.1",
-    "wechaty-puppet-wechat4u": "^1.13.15",
     "wechaty-puppet-wechat": "^1.18.4",
+    "wechaty-puppet-wechat4u": "^1.13.15",
     "wx-voice": "^0.2.1",
-    "typechat": "^0.0.10",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
