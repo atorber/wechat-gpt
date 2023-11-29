@@ -39,6 +39,7 @@ import bodyParser from 'koa-bodyparser'
 import { AppRoutes } from './routes.js'
 import cors from '@koa/cors'
 import websockify from 'koa-websocket'
+import { PerformanceObserver } from 'perf_hooks'
 
 const config = getConfig()
 const whiteList = config.whiteList
@@ -546,18 +547,19 @@ bot.on('friendship', async friendship => {
 //   .then(() => log.info('StarterBot', 'Starter Bot Started.'))
 //   .catch(e => log.error('StarterBot', e))
 
-function startBot (bot:Wechaty) {
+function startBot () {
+  log.info('开始启动...')
   bot.start()
     .then(() => log.info('StarterBot', 'Starter Bot Started.'))
     .catch(e => {
-      log.error('StarterBot', e)
+      log.error('StarterBot 失败...', e)
       // 等待一段时间后重启
-      setTimeout(startBot(bot), 5000)  // 5秒后重启
+      setTimeout(startBot, 5000)  // 5秒后重启
     })
 }
 
 // 启动 bot
-startBot(bot)
+startBot()
 
 const app = new Koa()
 const router = new Router()
