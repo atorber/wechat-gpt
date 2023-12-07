@@ -1,6 +1,6 @@
 {
   "name": "WechatGPT",
-  "version": "0.14.6",
+  "version": "0.14.7",
   "description": "wechat & chatgpt",
   "type": "module",
   "engines": {

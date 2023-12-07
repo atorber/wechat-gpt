@@ -549,13 +549,31 @@ bot.on('friendship', async friendship => {
 
 function startBot () {
   log.info('开始启动...')
-  bot.start()
-    .then(() => log.info('StarterBot', 'Starter Bot Started.'))
-    .catch(e => {
-      log.error('StarterBot 失败...', e)
-      // 等待一段时间后重启
-      setTimeout(startBot, 5000)  // 5秒后重启
+  try {
+    bot.stop().then(() => {
+      bot.start()
+        .then(() => log.info('StarterBot', 'Starter Bot Started.'))
+        .catch(e => {
+          log.error('StarterBot 失败...', e)
+          // 等待一段时间后重启
+          setTimeout(startBot, 5000)  // 5秒后重启
+        })
+      return true
+    }).catch(e => {
+      log.error('机器人启动失败...', e)
+      bot.start()
+        .then(() => log.info('StarterBot', 'Starter Bot Started.'))
+        .catch(e => {
+          log.error('StarterBot 失败...', e)
+          // 等待一段时间后重启
+          setTimeout(startBot, 5000)  // 5秒后重启
+        })
     })
+  } catch (e) {
+    log.error('机器人停止失败...')
+    // 等待一段时间后重启
+    setTimeout(startBot, 5000)  // 5秒后重启
+  }
 }
 
 // 启动 bot
