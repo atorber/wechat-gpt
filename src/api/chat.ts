@@ -129,7 +129,7 @@ export async function updateChats (
       content:{
         data:curMsg,
         sender_id:talker.id,
-        receiver_id:room.id,
+        receiver_id:room.id || '',
         talk_type:2,
       },
     }
