@@ -1,6 +1,6 @@
 /* eslint-disable sort-keys */
-import homeController from './controller/home-controller.js'
-import userController from './controller/user-controller.js'
+import homeController from '../controller/home-controller.js'
+import userController from '../controller/user-controller.js'
 
 export interface Route {
     path: string;

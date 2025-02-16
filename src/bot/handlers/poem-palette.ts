@@ -189,8 +189,7 @@ export class PoemPalette {
         // Save each canvas to file
         const file = path.join(outputPath, `${fileName}_slice_${i}_${j}.png`)
         console.info('file:', file)
-        await fs.promises.writeFile(file, buffer)
-        // await fs.writeFile(`${outputPath}_slice_${i}_${j}.png`, buffer);
+        await fs.promises.writeFile(file, new Uint8Array(buffer))
         images.push(file)
       }
     }
@@ -283,7 +282,7 @@ export class PoemPalette {
     const buffer = canvas.toBuffer('image/png')
     const fileName = path.basename(imagePath, path.extname(imagePath))
     const outputFileName = `${outputPath}/${title}-${fileName}-framed-poster.png`
-    fs.writeFileSync(outputFileName, buffer)
+    fs.writeFileSync(outputFileName, new Uint8Array(buffer))
     return outputFileName
   }
 

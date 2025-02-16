@@ -1,6 +1,6 @@
 /* eslint-disable sort-keys */
 import 'dotenv/config.js'
-import { CozeBot, ChatV2Req } from '../src/coze.js'
+import { CozeBot, ChatV2Req } from '../src/bot/handlers/coze.js'
 
 const bot = new CozeBot({
   api_key: process.env['COZE_TOKEN'] || '',

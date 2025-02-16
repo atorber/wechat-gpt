@@ -85,7 +85,7 @@ atorber/wechatgpt:v0.14.1-thin
 
 ## 机器人协议支持
 
-可参考 [wechat-openai-qa-bot](https://github.com/choogoo/wechat-openai-qa-bot) 项目关于wechaty机器人协议的支持，自行切换至其他协议 https://www.yuque.com/atorber/oegota/hgmhxclivlwn090z
+可参考 [wechat-openai-qa-bot](https://github.com/atorber/wechat-openai-qa-bot) 项目关于wechaty机器人协议的支持，自行切换至其他协议 https://www.yuque.com/atorber/oegota/hgmhxclivlwn090z
 
 ## 关于封号
 
@@ -105,7 +105,7 @@ atorber/wechatgpt:v0.14.1-thin
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=choogoo/wechatgpt&type=Date)](https://star-history.com/#choogoo/wechatgpt&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=atorber/wechatgpt&type=Date)](https://star-history.com/#atorber/wechatgpt&Date)
 
 ## 更新日志
 

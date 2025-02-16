@@ -1,20 +1,20 @@
 export const ACCESS_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJndWFyZCI6ImFwaSIsImlzcyI6ImltLndlYiIsImV4cCI6MTcyMTA3MDkwNCwiaWF0IjoxNjg1MDcwOTA0LCJqdGkiOiIyMDU0In0.-Mk4a20gur-QPxlYjgYc_eHWpWkDURJTawO0yBQ_b2g'
 export type LoginRequest = {
-    mobile: string;
-    password: string;
-    platform: string;
-  };
+  mobile: string;
+  password: string;
+  platform: string;
+};
 
 export type LoginResponse = {
-    code: number;
-    message: string;
-    data: {
-      access_token: string;
-      expires_in: number;
-      type: string;
-    };
+  code: number;
+  message: string;
+  data: {
+    access_token: string;
+    expires_in: number;
+    type: string;
   };
-export async function authenticateUser (mobile:string, password:string) {
+};
+export async function authenticateUser(mobile: string, password: string) {
 
   if ((mobile === '18798272054' || mobile === '18798272055') && password === 'admin123') {
     return ACCESS_TOKEN
@@ -24,7 +24,7 @@ export async function authenticateUser (mobile:string, password:string) {
 
 }
 
-export function validateToken (token: string) {
+export function validateToken(token: string) {
   console.info('token:', token)
   if (token === ACCESS_TOKEN) {
     return true
@@ -39,7 +39,12 @@ export default class UserService {
     return new Promise(resolve => resolve('hello world,' + new Date().toLocaleString()))
   }
 
-  login = async (ctx: { request: { body: LoginRequest; }; body: { code: number; message: string; data: { access_token: string; expires_in: number; type: string; } | {}; }; }) => {
+  login = async (ctx: {
+    request: {
+      body: LoginRequest;
+    };
+    body: { code: number; message: string; data: { access_token: string; expires_in: number; type: string; } | {}; };
+  }) => {
     const requestBody: LoginRequest = ctx.request.body
     const {
       mobile,
@@ -70,6 +75,7 @@ export default class UserService {
       }
       ctx.body = response
     }
+    return ctx
   }
 
 }

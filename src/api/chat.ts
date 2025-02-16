@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { FileBox } from 'file-box'
 import htmlToDocx from 'html-to-docx'
 import DB from '../db/nedb.js'
+import { CONFIG} from '../config.js'
 const messageChatData = DB('data/messageChat.db')
 
 const rootDir = path.resolve(process.cwd(), './')
@@ -25,7 +26,6 @@ export async function getAvatarUrl (params:Contact|Room) {
 
 export async function updateChats (
   message:Message,
-  recordsDir: {[key:string]:any[]},
   chats:{[key:string]:any},
   webClient:any,
 ) {
@@ -104,7 +104,7 @@ export async function updateChats (
   }
 
   if (room) {
-    const records:any[] = recordsDir[room.id] || []
+    const records:any[] = []
     const chatId = `2_${room.id}`
     chats[chatId] = {
       avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
@@ -135,14 +135,13 @@ export async function updateChats (
     }
     curMsg.sequence = records.length
     records.push(curMsg)
-    recordsDir[room.id] = records
     // 存储到DB
     await messageChatData.insert(records)
     if (webClient) {
       webClient.websocket.send(JSON.stringify(newMessage))
     }
   } else {
-    const records:any[] = (message.self() ? recordsDir[listener?.id as string] : recordsDir[talker.id]) || []
+    const records:any[] = []
     const chatId = `1_${talker.id}`
     chats[chatId] = {
       avatar: await getAvatarUrl(talker) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
@@ -172,7 +171,7 @@ export async function updateChats (
     }
     curMsg.sequence = records.length
     records.push(curMsg)
-    recordsDir[talker.id] = records
+    await messageChatData.insert(records)
     log.info('向ws发送消息：', JSON.stringify(newMessage, undefined, 2))
     if (webClient && talker.id !== listener?.id) {
       webClient.websocket.send(JSON.stringify(newMessage))
@@ -183,7 +182,6 @@ export async function updateChats (
 export async function updateChatsReply (
   bot:Wechaty,
   requestBody: SendTextRequest,
-  recordsDir:{[key:string]:any[]},
   chats:{[key:string]:any},
   webClient:any,
 ) {
@@ -228,7 +226,7 @@ export async function updateChatsReply (
   }
 
   if (room) {
-    const records:any[] = recordsDir[room.id] || []
+    const records:any[] = []
     const chatId = `2_${room.id}`
     chats[chatId] = {
       avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
@@ -276,12 +274,11 @@ export async function updateChatsReply (
     }
     curMsg.sequence = records.length
     records.push(curMsg)
-    recordsDir[room.id] = records
     if (webClient) {
       webClient.websocket.send(JSON.stringify(newMessage))
     }
   } else {
-    const records:any[] = recordsDir[talker.id] || []
+    const records:any[] = []
     const chatId = `1_${talker.id}`
     chats[chatId] = {
       avatar: await getAvatarUrl(talker) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
@@ -329,7 +326,6 @@ export async function updateChatsReply (
     }
     curMsg.sequence = records.length
     records.push(curMsg)
-    recordsDir[talker.id] = records
     // 存储到DB
     await messageChatData.insert(records)
     if (webClient) {
@@ -373,12 +369,15 @@ export type NewContact = {
 
 export async function getAllContacts (bot:Wechaty) {
   const contacts = await bot.Contact.findAll()
+  log.info('contacts 数量:', contacts.length)
+  bot.currentUser.say(`共有${contacts.length}个联系人`)
+
   const newContacts: (NewContact|null)[] = await Promise.all(
     contacts.map(async (contact) => {
       const isFriend = contact.friend()
       if (isFriend) {
         return {
-          avatar: await getAvatarUrl(contact) || 'https://im.gzydong.club/public/media/image/avatar/20230516/c5039ad4f29de2fd2c7f5a1789e155f5_200x200.png',
+          avatar: await getAvatarUrl(contact) || CONFIG.DEFAULT_AVATAR,
           gender: contact.gender(),
           group_id: 0,
           id: contact.id,
@@ -388,7 +387,7 @@ export async function getAllContacts (bot:Wechaty) {
           remark: await contact.alias() || '',
         }
       } else {
-        // log.info('不是好友:', contact.name())
+        log.info('不是好友:', contact.name())
       }
       return null // 如果联系人不是好友，则返回 null 或其他适当的值
     }),
@@ -396,6 +395,7 @@ export async function getAllContacts (bot:Wechaty) {
 
   // 过滤掉值为 null 的联系人
   const filteredContacts: (NewContact|null)[] = newContacts.filter((contact) => contact !== null)
+  log.info('filteredContacts count:', filteredContacts.length)
   return filteredContacts
 }
 

@@ -9,7 +9,10 @@ class UserController {
   }
 
   login = async (ctx: any) => {
-    ctx.body = await this.service.login(ctx)
+    // mobile: model.username || '18798272054',
+    // password: model.password || 'admin123',
+    // platform: 'web'
+    return await this.service.login(ctx)
   }
 
 }
