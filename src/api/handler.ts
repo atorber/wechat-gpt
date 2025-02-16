@@ -1,3 +1,4 @@
+/* eslint-disable sort-keys */
 import { Wechaty, log } from 'wechaty'
 import { OpenAI } from 'openai'
 import dayjs from 'dayjs'
@@ -9,10 +10,10 @@ interface MessageRaw {
     StrContent: string
     CreateTime: number
     IsSender: boolean
-    sender_id?: string
+    senderId?: string
     nickname?: string
     StrSender?: string
-    xml_content?: string
+    xmlXcontent?: string
     proto?: string
     BytesExtra?: string
 }
@@ -34,147 +35,145 @@ interface AIResponse {
 }
 
 const decodedProtobuf = async (msg: MessageRaw, bot: Wechaty) => {
-    if (msg.BytesExtra) {
-        try {
-            // Base64解码
-            const decoded = Buffer.from(msg.BytesExtra, 'base64')
-
-            // 解析protobuf数据
-            try {
-                // 提取sender_id和XML内容
-                let sender_id: string | '' = ''
-                let xml_content: string | '' = ''
-
-                // 查找wxid格式的ID
-                const idMatch = decoded.toString().match(/wxid_[a-z0-9]{15,20}/)
-                if (idMatch) {
-                    sender_id = idMatch[0]
-                } else {
-                    // 查找其他字母开头的ID
-                    const otherIdMatch = decoded.toString().match(/(?:^|[^a-zA-Z])[a-zA-Z][a-zA-Z0-9_]{10,20}(?:$|[^a-zA-Z0-9_])/)
-                    if (otherIdMatch) {
-                        sender_id = otherIdMatch[0].match(/[a-zA-Z][a-zA-Z0-9_]{10,20}/)?.[0] || ''
-                    }
-                }
-
-                // 查找XML内容
-                const xmlStartIndex = decoded.indexOf('<msgsource>')
-                if (xmlStartIndex !== -1) {
-                    const xmlEndIndex = decoded.indexOf('</msgsource>') + '</msgsource>'.length
-                    if (xmlEndIndex !== -1) {
-                        xml_content = decoded.slice(xmlStartIndex, xmlEndIndex).toString()
-                    }
-                }
-
-                msg.sender_id = sender_id
-                msg.xml_content = xml_content
-                msg.proto = decoded.toString('hex').slice(0, 100) + '...'
-
-            } catch (e) {
-                console.error('Protobuf解析失败:', e)
-                msg.sender_id = ''
-                msg.xml_content = ''
-                msg.proto = ''
-            }
-
-        } catch (e) {
-            console.error('Base64解码失败:', e)
-            msg.sender_id = ''
-            msg.xml_content = ''
-            msg.proto = ''
-        }
-    }
-    
-    if (msg.IsSender) {
-        msg.sender_id = bot.currentUser.id
-        msg.StrSender = bot.currentUser.id
-    }
-
-    if (msg.StrTalker.includes('@')) {
-        msg.StrSender = msg.sender_id || bot.currentUser.id
-    } else {
-        msg.StrSender = msg.IsSender ? bot.currentUser.id : msg.StrTalker
-    }
-
+  if (msg.BytesExtra) {
     try {
-        const contact = await bot.Contact.find({ id: msg.StrSender })
-        if (contact) {
-            msg.nickname = contact.name()
-        }
-    } catch (e) {
-        console.error('获取联系人失败:', e)
-    }
+      // Base64解码
+      const decoded = Buffer.from(msg.BytesExtra, 'base64')
 
-    return msg
+      // 解析protobuf数据
+      try {
+        // 提取sender_id和XML内容
+        let senderId: string | '' = ''
+        let xmlXcontent: string | '' = ''
+
+        // 查找wxid格式的ID
+        const idMatch = decoded.toString().match(/wxid_[a-z0-9]{15,20}/)
+        if (idMatch) {
+          senderId = idMatch[0]
+        } else {
+          // 查找其他字母开头的ID
+          const otherIdMatch = decoded.toString().match(/(?:^|[^a-zA-Z])[a-zA-Z][a-zA-Z0-9_]{10,20}(?:$|[^a-zA-Z0-9_])/)
+          if (otherIdMatch) {
+            senderId = otherIdMatch[0].match(/[a-zA-Z][a-zA-Z0-9_]{10,20}/)?.[0] || ''
+          }
+        }
+
+        // 查找XML内容
+        const xmlStartIndex = decoded.indexOf('<msgsource>')
+        if (xmlStartIndex !== -1) {
+          const xmlEndIndex = decoded.indexOf('</msgsource>') + '</msgsource>'.length
+          if (xmlEndIndex !== -1) {
+            xmlXcontent = decoded.slice(xmlStartIndex, xmlEndIndex).toString()
+          }
+        }
+
+        msg.senderId = senderId
+        msg.xmlXcontent = xmlXcontent
+        msg.proto = decoded.toString('hex').slice(0, 100) + '...'
+
+      } catch (e) {
+        console.error('Protobuf解析失败:', e)
+        msg.senderId = ''
+        msg.xmlXcontent = ''
+        msg.proto = ''
+      }
+
+    } catch (e) {
+      console.error('Base64解码失败:', e)
+      msg.senderId = ''
+      msg.xmlXcontent = ''
+      msg.proto = ''
+    }
+  }
+
+  if (msg.IsSender) {
+    msg.senderId = bot.currentUser.id
+    msg.StrSender = bot.currentUser.id
+  }
+
+  if (msg.StrTalker.includes('@')) {
+    msg.StrSender = msg.senderId || bot.currentUser.id
+  } else {
+    msg.StrSender = msg.IsSender ? bot.currentUser.id : msg.StrTalker
+  }
+
+  try {
+    const contact = await bot.Contact.find({ id: msg.StrSender })
+    if (contact) {
+      msg.nickname = contact.name()
+    }
+  } catch (e) {
+    console.error('获取联系人失败:', e)
+  }
+
+  return msg
 }
 
-const getTalkRecordsFromServer = async (receiver_id: string, limit: number = 30, cursor: number = 0, bot: Wechaty) => {
-    const db = 'MSG0.db'
-    const sql = `select * from MSG WHERE StrTalker = \"${receiver_id}\" ORDER BY CreateTime DESC LIMIT ${limit} OFFSET ${cursor};`
-    const payload = { db, sql }
-    const method = 'dbSqlQuery'
+const getTalkRecordsFromServer = async (receiverId: string, limit: number = 30, cursor: number = 0, bot: Wechaty) => {
+  const db = 'MSG0.db'
+  const sql = `select * from MSG WHERE StrTalker = "${receiverId}" ORDER BY CreateTime DESC LIMIT ${limit} OFFSET ${cursor};`
+  const payload = { db, sql }
+  const method = 'dbSqlQuery'
 
-    const text = JSON.stringify({ payload, method })
-    const resp = await bot.puppet.messageSendText('@agent', text) as string
-    let data = JSON.parse(resp)
-    console.info('查询消息记录data:', data)
+  const text = JSON.stringify({ payload, method })
+  const resp = await bot.puppet.messageSendText('@agent', text) as string
+  let data = JSON.parse(resp)
+  console.info('查询消息记录data:', data)
 
-    // 处理消息数据
-    if (data) {
-        data = await Promise.all(data.map((msg: MessageRaw) => {
-            return decodedProtobuf(msg, bot)
-        }))
-    }
+  // 处理消息数据
+  if (data) {
+    data = await Promise.all(data.map((msg: MessageRaw) => {
+      return decodedProtobuf(msg, bot)
+    }))
+  }
 
-    console.info('格式化消息记录data:', data)
-    return data
+  console.info('格式化消息记录data:', data)
+  return data
 }
 
 const getTalkRecordsFromDB = async (bot: Wechaty) => {
-    /*
+  /*
 {
   "db": "MSG0.db",
   "sql": "SELECT m.* FROM MSG m INNER JOIN (SELECT StrTalker, MAX(CreateTime) AS MaxCreateTime FROM MSG GROUP BY StrTalker) AS latest ON m.StrTalker = latest.StrTalker AND m.CreateTime =latest.MaxCreateTime ORDER BY CreateTime DESC;"
 }
     */
-    const db = 'MSG0.db'
-    const sql = `SELECT m.* FROM MSG m INNER JOIN (SELECT StrTalker, MAX(CreateTime) AS MaxCreateTime FROM MSG GROUP BY StrTalker) AS latest ON m.StrTalker = latest.StrTalker AND m.CreateTime =latest.MaxCreateTime ORDER BY CreateTime DESC;`
-    const payload = { db, sql }
-    const method = 'dbSqlQuery'
+  const db = 'MSG0.db'
+  const sql = 'SELECT m.* FROM MSG m INNER JOIN (SELECT StrTalker, MAX(CreateTime) AS MaxCreateTime FROM MSG GROUP BY StrTalker) AS latest ON m.StrTalker = latest.StrTalker AND m.CreateTime =latest.MaxCreateTime ORDER BY CreateTime DESC;'
+  const payload = { db, sql }
+  const method = 'dbSqlQuery'
 
-    const text = JSON.stringify({ payload, method })
-    const resp = await bot.puppet.messageSendText('@agent', text) as string
-    let data = JSON.parse(resp)
+  const text = JSON.stringify({ payload, method })
+  const resp = await bot.puppet.messageSendText('@agent', text) as string
+  let data = JSON.parse(resp)
 
-    // 处理消息数据
-    if (data) {
-        data = await Promise.all(data.map((msg: MessageRaw) => {
-            return decodedProtobuf(msg, bot)
-        }))
-    }
+  // 处理消息数据
+  if (data) {
+    data = await Promise.all(data.map((msg: MessageRaw) => {
+      return decodedProtobuf(msg, bot)
+    }))
+  }
 
-    console.info('查询消息记录data:', data)
+  console.info('查询消息记录data:', data)
 
-    return data
+  return data
 }
 
 const formatMessage = (messages: MessageRaw[], bot: Wechaty): string => {
-    if (!messages || messages.length === 0) return ''
+  const sortedMessages = [ ...messages ].sort((a, b) => a.CreateTime - b.CreateTime)
 
-    const sortedMessages = [...messages].sort((a, b) => a.CreateTime - b.CreateTime)
-
-    return sortedMessages.map(msg =>
-        `${dayjs(msg.CreateTime * 1000).format('YYYY-MM-DD HH:mm:ss')} ${msg.StrSender}:${msg.StrContent}`
-    ).join('\n') + `\n${dayjs().format('YYYY-MM-DD HH:mm:ss')} ${bot.currentUser.name}:`
+  return sortedMessages.map(msg =>
+        `${dayjs(msg.CreateTime * 1000).format('YYYY-MM-DD HH:mm:ss')} ${msg.StrSender}:${msg.StrContent}`,
+  ).join('\n') + `\n${dayjs().format('YYYY-MM-DD HH:mm:ss')} ${bot.currentUser.name}:`
 }
 
 const replayMessageByAI = async (bot: Wechaty, talker: string, messages: MessageRaw[], roleDescription: string = '闲聊朋友'): Promise<{ message: AIResponse, talker: string }> => {
-    const client = new OpenAI({
-        apiKey: CONFIG.OPENAI_API_KEY,
-        baseURL: CONFIG.OPENAI_BASE_URL
-    })
+  const client = new OpenAI({
+    apiKey: CONFIG.OPENAI_API_KEY,
+    baseURL: CONFIG.OPENAI_BASE_URL,
+  })
 
-    const systemMessage: string = `
+  const systemMessage: string = `
     ### 角色设定
 你是一个部署在微信平台的智能对话助手,能够模仿指定人物的聊天风格辅助对话，需同时具备自然对话能力、信息结构化处理能力和上下文管理能力。
 
@@ -242,38 +241,38 @@ const replayMessageByAI = async (bot: Wechaty, talker: string, messages: Message
 1. 请严格按照上述规范输出JSON，不要包含任何markdown格式(不要包含\`\`\`json 和 \`\`\`,以{开头，以}结尾)。
 2. 不要编造任何信息，不要编造任何回复，不要编造任何对话，不要编造任何人物关系，不要编造任何背景信息。
 `
-    const userMessage = formatMessage(messages, bot)
-    const userContent = `人物关系和背景：\n\n${talker}，${roleDescription}\n\n聊天记录：\n\n${userMessage}\n\n请根据上述要求，生成回复消息。`
+  const userMessage = formatMessage(messages, bot)
+  const userContent = `人物关系和背景：\n\n${talker}，${roleDescription}\n\n聊天记录：\n\n${userMessage}\n\n请根据上述要求，生成回复消息。`
 
+  try {
+    const response = await client.chat.completions.create({
+      model: CONFIG.OPENAI_MODEL,
+      messages: [
+        { role: 'system', content: systemMessage },
+        { role: 'user', content: userContent },
+      ],
+      max_tokens: 4096,
+    })
+
+    log.info('智能回复:', JSON.stringify(response))
     try {
-        const response = await client.chat.completions.create({
-            model: CONFIG.OPENAI_MODEL,
-            messages: [
-                { role: 'system', content: systemMessage },
-                { role: 'user', content: userContent }
-            ],
-            max_tokens: 4096
-        })
-
-        log.info('智能回复:', JSON.stringify(response))
-        try {
-            const message = JSON.parse(response.choices?.[0]?.message?.content || '{}')
-            return {
-                message,
-                talker
-            }
-        } catch (error) {
-            log.error('AI回复失败:', error)
-            throw error
-        }
+      const message = JSON.parse(response.choices[0]?.message?.content || '{}')
+      return {
+        message,
+        talker,
+      }
     } catch (error) {
-        log.error('AI回复失败:', error)
-        throw error
+      log.error('AI回复失败:', error)
+      throw error
     }
+  } catch (error) {
+    log.error('AI回复失败:', error)
+    throw error
+  }
 }
 
 export {
-    getTalkRecordsFromServer,
-    getTalkRecordsFromDB,
-    replayMessageByAI
+  getTalkRecordsFromServer,
+  getTalkRecordsFromDB,
+  replayMessageByAI,
 }

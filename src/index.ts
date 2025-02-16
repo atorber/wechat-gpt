@@ -6,11 +6,11 @@ import { Contact, Message, ScanStatus, types, WechatyBuilder, log, Room, Sayable
 import { FileBox } from 'file-box'
 import { WechatferryPuppet } from '@atorber/puppet'
 import qrcodeTerminal from 'qrcode-terminal'
-import {BotConfig, CONFIG} from './config.js'
+import { BotConfig, CONFIG } from './config.js'
 import type { SendTextRequest, MessagePublishRequest } from './types/mod.js'
 import { v4 as uuidv4 } from 'uuid'
 import fs from 'fs'
-import { addMessage,} from './api/message.js'
+import { addMessage } from './api/message.js'
 import { getTalkRecordsFromServer, getTalkRecordsFromDB, replayMessageByAI } from './api/handler.js'
 import {
   getAvatarUrl,
@@ -25,9 +25,9 @@ import {
   getPhone,
 } from './api/chat.js'
 import { validateToken } from './service/user-service.js'
-import { PoemPalette, } from './bot/handlers/poem-palette.js'
+import { PoemPalette } from './bot/handlers/poem-palette.js'
 import { createPoster } from './bot/handlers/poem.js'
-import { PoemPalette as PoemPaletteCoze, } from './bot/handlers/poem-palette-coze.js'
+import { PoemPalette as PoemPaletteCoze } from './bot/handlers/poem-palette-coze.js'
 import Koa, { DefaultState, DefaultContext } from 'koa'
 import Router from '@koa/router'
 // import bodyParser from 'koa-bodyparser'
@@ -47,7 +47,7 @@ log.info('rootDir:', rootDir)
 let currentUser: Contact
 let botConfig: BotConfig
 
-let whiteList: any = []
+const whiteList: any = []
 
 let webClient: any
 let chats: { [key: string]: any }
@@ -115,7 +115,7 @@ const sendMessage = async (publisher: Publisher, text: Sayable): Promise<void> =
   await addMessage(message)
 }
 
-function onScan(qrcode: string, status: ScanStatus) {
+function onScan (qrcode: string, status: ScanStatus) {
   if (status === ScanStatus.Waiting || status === ScanStatus.Timeout) {
     const qrcodeImageUrl = [
       'https://wechaty.js.org/qrcode/',
@@ -138,36 +138,36 @@ const initConfig = (user: Contact) => {
 }
 
 // 登录成功
-function onLogin(user: Contact) {
+function onLogin (user: Contact) {
   log.info('StarterBot', '%s login', user)
-  if (CONFIG.WECHATY_PUPPET && ['wechaty-puppet-wechat', 'wechaty-puppet-wechat4u', 'wechaty-puppet-padlocal', 'wechaty-puppet-wechatferry'].includes(CONFIG.WECHATY_PUPPET)) {
+  if (CONFIG.WECHATY_PUPPET && [ 'wechaty-puppet-wechat', 'wechaty-puppet-wechat4u', 'wechaty-puppet-padlocal', 'wechaty-puppet-wechatferry' ].includes(CONFIG.WECHATY_PUPPET)) {
     initConfig(user)
   }
 }
 
 // 机器人就绪
-function onReady() {
-  if (CONFIG.WECHATY_PUPPET && ['wechaty-puppet-service'].includes(CONFIG.WECHATY_PUPPET)) {
+function onReady () {
+  if (CONFIG.WECHATY_PUPPET && [ 'wechaty-puppet-service' ].includes(CONFIG.WECHATY_PUPPET)) {
     initConfig(bot.currentUser)
   }
 }
 
 // 登出
-function onLogout(user: Contact) {
+function onLogout (user: Contact) {
   log.info('StarterBot', '%s logout', user)
 }
 
 // 收到消息
-async function onMessage(msg: Message) {
+async function onMessage (msg: Message) {
   log.info('onMessage', JSON.stringify(msg))
   try {
     const talker = msg.talker()
     const room = msg.room()
     const topic = await room?.topic()
     let text = msg.text()
-  
+
     log.info('talker:', JSON.stringify(talker))
-  
+
     await updateChats(msg, chats, webClient)
     const addRes = await addMessage(msg)
 
@@ -178,7 +178,7 @@ async function onMessage(msg: Message) {
       try {
         let curId = ''
         let curUser = ''
-  
+
         if (room) {
           curId = room.id
           curUser = await room.topic()
@@ -188,10 +188,10 @@ async function onMessage(msg: Message) {
         }
         log.info('curUser', curUser)
         log.info('curId', curId)
-  
-        let curUserConfig = whiteList[curId] || undefined
+
+        const curUserConfig = whiteList[curId] || undefined
         log.info('curUserConfig:', JSON.stringify(curUserConfig))
-  
+
         if ((msg.type() === types.Message.Text || msg.type() === types.Message.Audio)) {
           if (text.startsWith('/生成诗词')) {
             if (isCreating) {
@@ -215,7 +215,7 @@ async function onMessage(msg: Message) {
               }
             }
           }
-          
+
           if (text.startsWith('/生成海报')) {
             if (isCreating) {
               await msg.say('当前有任务正在生成，请等待完成后再发起新的任务~')
@@ -247,28 +247,28 @@ async function onMessage(msg: Message) {
                 log.error('生成海报失败...', err)
               }
             }
-  
+
           }
-          
+
           if (text.startsWith('/最新任务')) {
-  
+
             if (textPoemLatest['诗题'] && textPoemLatest['诗词']) {
               await msg.say(`${textPoemLatest['诗题']}\n${textPoemLatest['诗词']}`)
             } else {
               await sendMessage(msg, '当前没有任务正在生成~')
             }
-  
+
           }
-          
+
           if (text.startsWith('/取消任务')) {
             isCreating = false
             textPoemLatest = {}
             await sendMessage(msg, '生成任务已取消~')
           }
-          
+
           if (text.startsWith('/诗词帮助')) {
             await sendMessage(msg, '发送 /生成诗词+关键字 生成诗词\n发送 /生成海报 生成海报\n发送 /最新任务 查看最新任务\n发送 /取消任务 取消当前任务')
-          } 
+          }
         }
       } catch (err) {
         log.error('onMessage err:', err)
@@ -276,22 +276,22 @@ async function onMessage(msg: Message) {
     } else {
       log.info('重复消息')
     }
-  
-    if (room && topic && ['插画诗', '吟诗一首'].includes(topic)) {
+
+    if (room && topic && [ '插画诗', '吟诗一首' ].includes(topic)) {
       if (text === '使用说明' || text === '如何使用') {
         const helpText = '发送以 // 开头的消息与吟诗一首对话，可以要求生成插画诗，例如：\n\n//我想要一首春天的诗\n//描述一只猫在草地上玩耍\n//生成海报\n//润色一下 《七十有感》本人今年七十一，弯腰驼背头渐低。手笨眼迟行动缓，不与别人争高低。'
         await room.say(helpText)
       }
       if (text.startsWith('//')) {
         if (isCozeCreating) {
-          await room.say('当前有任务正在运行，请等待完成后继续对话~', ...[talker])
+          await room.say('当前有任务正在运行，请等待完成后继续对话~', ...[ talker ])
         } else {
           text = text.replace(/\/\//g, '')
           try {
             isCozeCreating = true
             const chatResp = await ppCoze.chat(topic, text, room.id)
             if (chatResp.type === 'image') {
-              await room.say('海报已生成完毕~', ...[talker])
+              await room.say('海报已生成完毕~', ...[ talker ])
               const file0 = FileBox.fromUrl(chatResp.content[0] as string)
               await room.say(file0)
               const file1 = FileBox.fromUrl(chatResp.content[1] as string)
@@ -307,7 +307,7 @@ async function onMessage(msg: Message) {
         }
       }
     }
-  
+
     // 私聊消息中使用机器人回复
     if (!room && !msg.self()) {
       const talker = msg.talker()
@@ -369,7 +369,7 @@ bot.on('friendship', async friendship => {
         await friendship.contact().say('你好，我是你的智能助手瓦力。发送 帮助 获取操作说明')
         break
 
-      // 2. Friend Ship Confirmed
+        // 2. Friend Ship Confirmed
 
       case bot.Friendship.Type.Confirm:
         log.info('case bot.Friendship.Type.Confirm:', '好友请求被确认')
@@ -385,24 +385,27 @@ bot.on('friendship', async friendship => {
 //   .then(() => log.info('StarterBot', 'Starter Bot Started.'))
 //   .catch(e => log.error('StarterBot', e))
 
-function startBot() {
+function startBot () {
   log.info('开始启动...')
   try {
     bot.stop().then(() => {
       bot.start()
         .then(() => {
           log.info('机器人已启动')
+          return true
         })
         .catch(e => {
           log.error('StarterBot 失败...', e)
           // 等待一段时间后重启
         })
-
       return true
     }).catch(e => {
       log.error('机器人启动失败...', e)
       bot.start()
-        .then(() => log.info('StarterBot', 'Starter Bot Started.'))
+        .then(() => {
+          log.info('StarterBot', 'Starter Bot Started.')
+          return true
+        })
         .catch(e => {
           log.error('StarterBot 失败...', e)
           // 等待一段时间后重启
@@ -502,7 +505,7 @@ router.post('/api/v1/upload/image', async (ctx: any) => {
     log.info('file:', JSON.stringify(file))
     const fileJson: any = JSON.parse(JSON.stringify(file))
     const fileExt = path.extname(fileJson.originalFilename).toLowerCase()
-    if (!['.jpg', '.jpeg', '.png', '.gif'].includes(fileExt)) {
+    if (![ '.jpg', '.jpeg', '.png', '.gif' ].includes(fileExt)) {
       ctx.throw(400, 'Only image files are allowed!')
     }
 
@@ -778,14 +781,12 @@ router.get('/api/v1/group/apply/unread', async (ctx: any) => {
 })
 
 // 1查询用户表情包接口
-// ServeFindUserEmoticon | GET | /api/v1/emoticon/list | 
+// ServeFindUserEmoticon | GET | /api/v1/emoticon/list |
 router.get('/api/v1/emoticon/list', async (ctx: any) => {
   const response = { code: 200, message: 'success', data: { collect_emoticon: [], sys_emoticon: [] } }
   ctx.set('Content-Type', 'application/json; charset=utf-8')
   ctx.body = response
 })
-
-
 
 // 获取联系人详情
 router.get('/api/v1/users/detail', async (ctx: any) => {
@@ -943,21 +944,21 @@ router.get('/api/v1/talk/list', async (ctx: any) => {
       }
     }
     const talkRecord = {
-			"avatar": avatar,
-			"id": id,
-			"index_name": id,
-			"is_disturb": 0,
-			"is_online": 1,
-			"is_robot": 0,
-			"is_top": 0,
-			"msg_text": item.StrContent || '...',
-			"name": name,
-			"receiver_id": StrTalker,
-			"remark_name": "",
-			"talk_type": talk_type,
-			"unread_num": 0,
-			"updated_at": updated_at
-		}
+      avatar,
+      id,
+      index_name: id,
+      is_disturb: 0,
+      is_online: 1,
+      is_robot: 0,
+      is_top: 0,
+      msg_text: item.StrContent || '...',
+      name,
+      receiver_id: StrTalker,
+      remark_name: '',
+      talk_type,
+      unread_num: 0,
+      updated_at,
+    }
     if (name) {
       result.push(talkRecord)
     }
@@ -1099,45 +1100,45 @@ type TalkRecord = {
 
 const getTalkRecords = async (
   receiverId: string,
-  limit: number,  
+  limit: number,
   cursor: number,
-  bot: Wechaty
+  bot: Wechaty,
 ): Promise<TalkRecord[]> => {
   // Implement this function to retrieve the talk records based on query parameters
   const talkRecordsServer: any[] = await getTalkRecordsFromServer(receiverId, limit, cursor, bot)
   console.info('talkRecordsServer:', talkRecordsServer)
 
-  let records: TalkRecord[] = []
+  const records: TalkRecord[] = []
   for (const item of talkRecordsServer) {
     // 格式：2025-02-10 10:10:44
     const created_at = new Date(item.CreateTime * 1000 + 8 * 60 * 60 * 1000).toISOString().replace('T', ' ').replace('Z', '')
     const receiver_id = item.StrTalker.includes('@chatroom') ? item.StrTalker : item.StrSender
-    let record: TalkRecord = {
+    const record: TalkRecord = {
       id: item.localId,
       sequence: item.Sequence,
       msg_id: item.MsgSvrID,
       talk_type: item.StrTalker.includes('@chatroom') ? 2 : 1,
       msg_type: 1,
       user_id: item.StrSender,
-      receiver_id: receiver_id,
+      receiver_id,
       nickname: item.nickname,
       avatar: '',
       is_revoke: 0,
       is_mark: 1,
       is_read: 1,
-      created_at: created_at,
+      created_at,
       extra: {
         content: item.StrContent,
       },
     }
     // const curMsg = record
-    
+
     // switch (item.Type) {
     //   case types.Message.Image: {
     //     // const file = message.toImage()
     //     // const thumbnail = await file.thumbnail()
     //     // await thumbnail.toFile(path.join(rootDir, 'public', 'uploads', `${message.id}.jpg`))
-  
+
     //     curMsg.msg_type = 3
     //     // curMsg.extra = {
     //     //   height: 1024,
@@ -1152,7 +1153,7 @@ const getTalkRecords = async (
     //     // const file = await message.toFileBox()
     //     // const fileName = file.name
     //     // await file.toFile(path.join(rootDir, 'public', 'uploads', `${message.id}_${fileName}`))
-  
+
     //     curMsg.msg_type = 6
     //     // curMsg.extra = {
     //     //   drive: 1,
@@ -1166,7 +1167,7 @@ const getTalkRecords = async (
     //     // const file = await message.toFileBox()
     //     // const fileName = file.name
     //     // await file.toFile(path.join(rootDir, 'public', 'uploads', `${message.id}_${fileName}`))
-  
+
     //     curMsg.msg_type = 4
     //     // curMsg.extra = {
     //     //   duration: 0,
@@ -1186,7 +1187,7 @@ const getTalkRecords = async (
     if (item.StrContent.startsWith('<msg>')) {
       const content = {
         code: item.StrContent,
-        lang: "yaml"
+        lang: 'yaml',
       }
       record.extra = content
       record.msg_type = 2
@@ -1195,7 +1196,7 @@ const getTalkRecords = async (
   }
 
   // log.info('聊天记录：', JSON.stringify(records))
-  return records || [] // Return an array of talk records
+  return records
 }
 
 router.get('/api/v1/talk/records', async (ctx) => {
@@ -1208,7 +1209,7 @@ router.get('/api/v1/talk/records', async (ctx) => {
 
   const orderTalkRecords = (talkRecords: { created_at: string }[]) => {
     return talkRecords.sort((a: { created_at: string }, b: { created_at: string }) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     )
   }
 

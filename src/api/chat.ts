@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { FileBox } from 'file-box'
 import htmlToDocx from 'html-to-docx'
 import DB from '../db/nedb.js'
-import { CONFIG} from '../config.js'
+import { CONFIG } from '../config.js'
 const messageChatData = DB('data/messageChat.db')
 
 const rootDir = path.resolve(process.cwd(), './')
@@ -370,7 +370,7 @@ export type NewContact = {
 export async function getAllContacts (bot:Wechaty) {
   const contacts = await bot.Contact.findAll()
   log.info('contacts 数量:', contacts.length)
-  bot.currentUser.say(`共有${contacts.length}个联系人`)
+  await bot.currentUser.say(`共有${contacts.length}个联系人`)
 
   const newContacts: (NewContact|null)[] = await Promise.all(
     contacts.map(async (contact) => {

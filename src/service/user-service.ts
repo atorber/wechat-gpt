@@ -14,7 +14,7 @@ export type LoginResponse = {
     type: string;
   };
 };
-export async function authenticateUser(mobile: string, password: string) {
+export async function authenticateUser (mobile: string, password: string) {
 
   if ((mobile === '18798272054' || mobile === '18798272055') && password === 'admin123') {
     return ACCESS_TOKEN
@@ -24,7 +24,7 @@ export async function authenticateUser(mobile: string, password: string) {
 
 }
 
-export function validateToken(token: string) {
+export function validateToken (token: string) {
   console.info('token:', token)
   if (token === ACCESS_TOKEN) {
     return true
