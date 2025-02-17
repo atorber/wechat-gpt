@@ -66,7 +66,7 @@ export async function updateChats (
         height: 1024,
         name: '',
         size: thumbnail.size || 100,
-        url: `http://127.0.0.1:9503/uploads/${message.id}.jpg`,
+        url: `${CONFIG.BASE_URL}/uploads/${message.id}.jpg`,
         width: 1024,
       } as any
       break
@@ -80,7 +80,7 @@ export async function updateChats (
       curMsg.extra = {
         drive: 1,
         name:fileName,
-        path:`http://127.0.0.1:9503/uploads/${message.id}_${fileName}`,
+        path:`${CONFIG.BASE_URL}/uploads/${message.id}_${fileName}`,
         size:file.size || 100,
       } as any
       break
@@ -94,7 +94,7 @@ export async function updateChats (
       curMsg.extra = {
         duration: 0,
         name:fileName || '',
-        url:`http://127.0.0.1:9503/uploads/${message.id}_${fileName}`,
+        url:`${CONFIG.BASE_URL}/uploads/${message.id}_${fileName}`,
         size:file.size || 0,
       } as any
       break
@@ -107,7 +107,7 @@ export async function updateChats (
     const records:any[] = []
     const chatId = `2_${room.id}`
     chats[chatId] = {
-      avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
+      avatar: await getAvatarUrl(room) || CONFIG.DEFAULT_AVATAR,
       id: chatId,
       index_name: chatId,
       is_disturb: 0,
@@ -144,7 +144,7 @@ export async function updateChats (
     const records:any[] = []
     const chatId = `1_${talker.id}`
     chats[chatId] = {
-      avatar: await getAvatarUrl(talker) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
+      avatar: await getAvatarUrl(talker) || CONFIG.DEFAULT_AVATAR,
       id: chatId,
       index_name: chatId,
       is_disturb: 0,
@@ -467,286 +467,3 @@ export async function getPhone (contact:Contact) {
     return ''
   }
 }
-
-// async function updateChats (message:Message) {
-//   const talker = message.talker()
-//   const listener = message.listener()
-//   const room = message.room()
-//   const text = message.text()
-//   const curTime = getCurrentFormattedDate()
-//   const curMsg =     {
-//     id: room?.id || talker.id,
-//     sequence: 1140,
-//     msg_id: message.id,
-//     talk_type: 1,
-//     msg_type: 1,
-//     user_id: talker.id,
-//     receiver_id: room?.id || talker.id,
-//     nickname: talker.name(),
-//     avatar: await getAvatarUrl(room || talker) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-//     is_revoke: 0,
-//     is_mark: 0,
-//     is_read: 1,
-//     content: text,
-//     created_at: getCurrentFormattedDate(),
-//     extra: {},
-//   }
-
-//   if (room) {
-//     const records:any[] = recordsDir[room.id] || []
-//     const chatId = `2_${room.id}`
-//     chats[chatId] = {
-//       avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-//       id: chatId,
-//       index_name: chatId,
-//       is_disturb: 0,
-//       is_online: 1,
-//       is_robot: 0,
-//       is_top: 0,
-//       msg_text: text,
-//       name: await room.topic(),
-//       receiver_id: room.id,
-//       remark_name: '',
-//       talk_type: 2,
-//       unread_num: 0,
-//       updated_at: curTime,
-//     }
-//     const newMessage = {
-//       sid:message.id,
-//       event:'im.message',
-//       content:{
-//         data:{
-//           avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-//           content:text,
-//           created_at:curTime,
-//           extra:{
-
-//           },
-//           id:room.id,
-//           is_revoke:0,
-//           is_mark:0,
-//           is_read:0,
-//           msg_id:message.id,
-//           msg_type:1,
-//           nickname:talker.name(),
-//           receiver_id:room.id,
-//           sequence:379,
-//           talk_type:2,
-//           user_id:talker.id,
-//         },
-//         sender_id:talker.id,
-//         receiver_id:room.id,
-//         talk_type:2,
-//       },
-//     }
-//     curMsg.sequence = records.length
-//     records.push(curMsg)
-//     recordsDir[room.id] = records
-//     if (webClient) {
-//       webClient.websocket.send(JSON.stringify(newMessage))
-//     }
-//   } else {
-//     const records:any[] = recordsDir[talker.id] || []
-//     const chatId = `1_${talker.id}`
-//     chats[chatId] = {
-//       avatar: await getAvatarUrl(talker) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-//       id: chatId,
-//       index_name: chatId,
-//       is_disturb: 0,
-//       is_online: 1,
-//       is_robot: 0,
-//       is_top: 0,
-//       msg_text: text,
-//       name: talker.name(),
-//       receiver_id: talker.id,
-//       remark_name: await talker.alias() || '',
-//       talk_type: 1,
-//       unread_num: 0,
-//       updated_at: getCurrentFormattedDate(),
-//     }
-//     const newMessage = {
-//       sid:message.id,
-//       event:'im.message',
-//       content:{
-//         data:{
-//           id:talker.id,
-//           sequence:379,
-//           msg_id:message.id,
-//           talk_type:1,
-//           msg_type:1,
-//           user_id:talker.id,
-//           receiver_id:listener?.id,
-//           nickname:talker.name(),
-//           avatar:await getAvatarUrl(talker) || 'https://im.gzydong.club/public/media/image/avatar/20230516/c5039ad4f29de2fd2c7f5a1789e155f5_200x200.png',
-//           is_revoke:0,
-//           is_mark:0,
-//           is_read:0,
-//           content:text,
-//           created_at:getCurrentFormattedDate(),
-//           extra:{
-
-//           },
-//         },
-//         sender_id:talker.id,
-//         receiver_id:listener?.id,
-//         talk_type:1,
-//       },
-//     }
-//     curMsg.sequence = records.length
-//     records.push(curMsg)
-//     recordsDir[talker.id] = records
-//     if (webClient) {
-//       webClient.websocket.send(JSON.stringify(newMessage))
-//     }
-//   }
-// }
-
-// async function updateChatsReply (requestBody: SendTextRequest) {
-
-//   const talker: Contact | undefined = await bot.currentUser
-//   let listener:Contact|undefined
-//   let room:Room|undefined
-//   const text = requestBody.text
-//   const messageId = uuidv4()
-
-//   if (requestBody.talk_type === 2) {
-//     room = await bot.Room.find({ id: requestBody.receiver_id })
-//     await room?.say(requestBody.text)
-//   } else {
-//     listener = await bot.Contact.find({ id: requestBody.receiver_id })
-//   }
-
-//   const curTime = getCurrentFormattedDate()
-//   const curMsg =     {
-//     id: room?.id || talker.id,
-//     sequence: 1140,
-//     msg_id: messageId,
-//     talk_type: 1,
-//     msg_type: 1,
-//     user_id: talker.id,
-//     receiver_id: room?.id || talker.id,
-//     nickname: talker.name(),
-//     avatar: await getAvatarUrl(room || talker) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-//     is_revoke: 0,
-//     is_mark: 0,
-//     is_read: 1,
-//     content: text,
-//     created_at: getCurrentFormattedDate(),
-//     extra: {
-//       address: '中国 广东省 深圳市 电信',
-//       agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
-//       datetime: getCurrentFormattedDate(),
-//       ip: '183.14.132.181',
-//       platform: 'web',
-//       reason: '常用设备登录',
-//     },
-//   }
-
-//   if (room) {
-//     const records:any[] = recordsDir[room.id] || []
-//     const chatId = `2_${room.id}`
-//     chats[chatId] = {
-//       avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-//       id: chatId,
-//       index_name: chatId,
-//       is_disturb: 0,
-//       is_online: 1,
-//       is_robot: 0,
-//       is_top: 0,
-//       msg_text: text,
-//       name: await room.topic(),
-//       receiver_id: room.id,
-//       remark_name: '',
-//       talk_type: 2,
-//       unread_num: 0,
-//       updated_at: curTime,
-//     }
-//     const newMessage = {
-//       sid:messageId,
-//       event:'im.message',
-//       content:{
-//         data:{
-//           avatar: await getAvatarUrl(room) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-//           content:text,
-//           created_at:curTime,
-//           extra:{
-
-//           },
-//           id:room.id,
-//           is_revoke:0,
-//           is_mark:0,
-//           is_read:0,
-//           msg_id:messageId,
-//           msg_type:1,
-//           nickname:talker.name(),
-//           receiver_id:room.id,
-//           sequence:379,
-//           talk_type:2,
-//           user_id:talker.id,
-//         },
-//         sender_id:talker.id,
-//         receiver_id:room.id,
-//         talk_type:2,
-//       },
-//     }
-//     curMsg.sequence = records.length
-//     records.push(curMsg)
-//     recordsDir[room.id] = records
-//     if (webClient) {
-//       webClient.websocket.send(JSON.stringify(newMessage))
-//     }
-//   } else {
-//     const records:any[] = recordsDir[talker.id] || []
-//     const chatId = `1_${talker.id}`
-//     chats[chatId] = {
-//       avatar: await getAvatarUrl(talker) || 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
-//       id: chatId,
-//       index_name: chatId,
-//       is_disturb: 0,
-//       is_online: 1,
-//       is_robot: 0,
-//       is_top: 0,
-//       msg_text: text,
-//       name: talker.name(),
-//       receiver_id: talker.id,
-//       remark_name: await talker.alias() || '',
-//       talk_type: 1,
-//       unread_num: 0,
-//       updated_at: getCurrentFormattedDate(),
-//     }
-//     const newMessage = {
-//       sid:messageId,
-//       event:'im.message',
-//       content:{
-//         data:{
-//           id:talker.id,
-//           sequence:379,
-//           msg_id:messageId,
-//           talk_type:1,
-//           msg_type:1,
-//           user_id:talker.id,
-//           receiver_id:listener?.id,
-//           nickname:talker.name(),
-//           avatar:await getAvatarUrl(talker) || 'https://im.gzydong.club/public/media/image/avatar/20230516/c5039ad4f29de2fd2c7f5a1789e155f5_200x200.png',
-//           is_revoke:0,
-//           is_mark:0,
-//           is_read:0,
-//           content:text,
-//           created_at:getCurrentFormattedDate(),
-//           extra:{
-
-//           },
-//         },
-//         sender_id:talker.id,
-//         receiver_id:listener?.id,
-//         talk_type:1,
-//       },
-//     }
-//     curMsg.sequence = records.length
-//     records.push(curMsg)
-//     recordsDir[talker.id] = records
-//     if (webClient) {
-//       webClient.websocket.send(JSON.stringify(newMessage))
-//     }
-//   }
-// }

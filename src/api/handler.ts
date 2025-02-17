@@ -14,7 +14,7 @@ interface MessageRaw {
     nickname?: string
     StrSender?: string
     xmlXcontent?: string
-    proto?: string
+    proto?: any
     BytesExtra?: string
 }
 
@@ -37,52 +37,124 @@ interface AIResponse {
 const decodedProtobuf = async (msg: MessageRaw, bot: Wechaty) => {
   if (msg.BytesExtra) {
     try {
-      // Base64解码
       const decoded = Buffer.from(msg.BytesExtra, 'base64')
 
-      // 解析protobuf数据
       try {
-        // 提取sender_id和XML内容
-        let senderId: string | '' = ''
-        let xmlXcontent: string | '' = ''
+        // 根据protobuf定义解析结构
+        let pos = 0
+        let message1: { field1?: number, field2?: number } = {}
+        const message2: Array<{ field1?: number, field2?: string }> = []
+        let senderId = ''
+        let xmlContent = ''
 
-        // 查找wxid格式的ID
-        const idMatch = decoded.toString().match(/wxid_[a-z0-9]{15,20}/)
-        if (idMatch) {
-          senderId = idMatch[0]
-        } else {
-          // 查找其他字母开头的ID
-          const otherIdMatch = decoded.toString().match(/(?:^|[^a-zA-Z])[a-zA-Z][a-zA-Z0-9_]{10,20}(?:$|[^a-zA-Z0-9_])/)
-          if (otherIdMatch) {
-            senderId = otherIdMatch[0].match(/[a-zA-Z][a-zA-Z0-9_]{10,20}/)?.[0] || ''
+        // 解析外层MessageBytesExtra
+        while (pos < decoded.length) {
+          const tagWire = readVarint(decoded, pos)
+          pos = tagWire.newPos
+          const fieldNumber = tagWire.value >> 3
+          const wireType = tagWire.value & 0x7
+
+          switch (fieldNumber) {
+            case 1: // message1 (SubMessage1)
+              if (wireType === 2) { // Length-delimited
+                const length = readVarint(decoded, pos)
+                pos = length.newPos
+                const subBuffer = decoded.slice(pos, pos + length.value)
+                pos += length.value
+
+                // 解析SubMessage1
+                let subPos = 0
+                message1 = {}
+                while (subPos < subBuffer.length) {
+                  const subTagWire = readVarint(subBuffer, subPos)
+                  subPos = subTagWire.newPos
+                  const subField = subTagWire.value >> 3
+                  const subWireType = subTagWire.value & 0x7
+
+                  if (subWireType === 0) { // varint
+                    const value = readVarint(subBuffer, subPos)
+                    subPos = value.newPos
+                    if (subField === 1) message1.field1 = value.value
+                    if (subField === 2) message1.field2 = value.value
+                  }
+                }
+              }
+              break
+
+            case 3: // message2 (repeated SubMessage2)
+              if (wireType === 2) { // Length-delimited
+                const length = readVarint(decoded, pos)
+                pos = length.newPos
+                const subBuffer = decoded.slice(pos, pos + length.value)
+                pos += length.value
+
+                // 解析SubMessage2
+                let subPos = 0
+                const subMsg: { field1?: number, field2?: string } = {}
+                while (subPos < subBuffer.length) {
+                  const subTagWire = readVarint(subBuffer, subPos)
+                  subPos = subTagWire.newPos
+                  const subField = subTagWire.value >> 3
+                  const subWireType = subTagWire.value & 0x7
+
+                  if (subField === 1 && subWireType === 0) { // field1: int32
+                    const value = readVarint(subBuffer, subPos)
+                    subPos = value.newPos
+                    subMsg.field1 = value.value
+                  } else if (subField === 2 && subWireType === 2) { // field2: string
+                    const len = readVarint(subBuffer, subPos)
+                    subPos = len.newPos
+                    subMsg.field2 = subBuffer.slice(subPos, subPos + len.value).toString('utf8')
+                    subPos += len.value
+                  }
+                }
+                message2.push(subMsg)
+              }
+              break
           }
         }
 
-        // 查找XML内容
-        const xmlStartIndex = decoded.indexOf('<msgsource>')
-        if (xmlStartIndex !== -1) {
-          const xmlEndIndex = decoded.indexOf('</msgsource>') + '</msgsource>'.length
-          if (xmlEndIndex !== -1) {
-            xmlXcontent = decoded.slice(xmlStartIndex, xmlEndIndex).toString()
+        // 提取关键信息
+        message2.forEach(subMsg => {
+          if (subMsg.field1 === 1) { // sender_id字段
+            senderId = subMsg.field2 || ''
+          } else if (subMsg.field1 === 7 && subMsg.field2?.includes('<msgsource>')) {
+            xmlContent = subMsg.field2
           }
+        })
+
+        // 降级处理：当protobuf解析失败时使用正则
+        if (!senderId) {
+          const decodedStr = decoded.toString('binary')
+          const idMatch = decodedStr.match(/(wxid_[a-z0-9]{15,20}|[a-zA-Z][a-zA-Z0-9_]{10,20})/)
+          senderId = idMatch?.[0] || ''
         }
 
         msg.senderId = senderId
-        msg.xmlXcontent = xmlXcontent
-        msg.proto = decoded.toString('hex').slice(0, 100) + '...'
+        msg.xmlXcontent = xmlContent
+        msg.proto = {
+          message1,
+          message2: message2.map(m => ({
+            field1: m.field1,
+            field2: m.field2,
+          })),
+        }
 
       } catch (e) {
         console.error('Protobuf解析失败:', e)
-        msg.senderId = ''
+        // 应急处理：直接搜索整个二进制数据
+        const decodedStr = decoded.toString('binary')
+        const idMatch = decodedStr.match(/(wxid_[a-z0-9]{15,20}|[a-zA-Z][a-zA-Z0-9_]{10,20})/)
+        msg.senderId = idMatch?.[0] || ''
         msg.xmlXcontent = ''
-        msg.proto = ''
+        msg.proto = {}
       }
 
     } catch (e) {
       console.error('Base64解码失败:', e)
       msg.senderId = ''
       msg.xmlXcontent = ''
-      msg.proto = ''
+      msg.proto = {}
     }
   }
 
@@ -163,11 +235,11 @@ const formatMessage = (messages: MessageRaw[], bot: Wechaty): string => {
   const sortedMessages = [ ...messages ].sort((a, b) => a.CreateTime - b.CreateTime)
 
   return sortedMessages.map(msg =>
-        `${dayjs(msg.CreateTime * 1000).format('YYYY-MM-DD HH:mm:ss')} ${msg.StrSender}:${msg.StrContent}`,
-  ).join('\n') + `\n${dayjs().format('YYYY-MM-DD HH:mm:ss')} ${bot.currentUser.name}:`
+        `${dayjs(msg.CreateTime * 1000).format('YYYY-MM-DD HH:mm:ss')} ${msg.nickname || msg.StrSender}:${msg.StrContent}`,
+  ).join('\n') + `\n${dayjs().format('YYYY-MM-DD HH:mm:ss')} ${bot.currentUser.name()}:`
 }
 
-const replayMessageByAI = async (bot: Wechaty, talker: string, messages: MessageRaw[], roleDescription: string = '闲聊朋友'): Promise<{ message: AIResponse, talker: string }> => {
+const replayMessageByAI = async (bot: Wechaty, talker: string, messages: MessageRaw[], roleDescription: string = '闲聊朋友'): Promise<{ message: AIResponse, talker: string, userContent?: string }> => {
   const client = new OpenAI({
     apiKey: CONFIG.OPENAI_API_KEY,
     baseURL: CONFIG.OPENAI_BASE_URL,
@@ -225,9 +297,9 @@ const replayMessageByAI = async (bot: Wechaty, talker: string, messages: Message
     "pendingConfirmation": [<需用户确认的列表项>]
   },
   "translation": {
-    "originalText": <原消息文本>,
-    "targetLanguage": <en/zh，根据原消息文本自动判断，中文翻译成英文，英文翻译成中文>,
-    "result": <翻译结果，中文翻译成英文，英文翻译成中文>
+    "originalText": <最后一条（所有消息中时间最晚的一条）发言的原消息文本>,
+    "targetLanguage": <en/zh，根据原消息文本自动判断，中文翻译成英文zh/en，英文翻译成中文en/zh>,
+    "result": <最后一条消息翻译结果的文本>
   }
 }
 
@@ -243,7 +315,7 @@ const replayMessageByAI = async (bot: Wechaty, talker: string, messages: Message
 `
   const userMessage = formatMessage(messages, bot)
   const userContent = `人物关系和背景：\n\n${talker}，${roleDescription}\n\n聊天记录：\n\n${userMessage}\n\n请根据上述要求，生成回复消息。`
-
+  log.info('userContent:', userContent)
   try {
     const response = await client.chat.completions.create({
       model: CONFIG.OPENAI_MODEL,
@@ -256,10 +328,12 @@ const replayMessageByAI = async (bot: Wechaty, talker: string, messages: Message
 
     log.info('智能回复:', JSON.stringify(response))
     try {
-      const message = JSON.parse(response.choices[0]?.message?.content || '{}')
+      const content = (response.choices[0]?.message?.content || '{}').replace(/^```json\n/, '').replace(/\n```$/, '')
+      const message = JSON.parse(content)
       return {
         message,
         talker,
+        userContent,
       }
     } catch (error) {
       log.error('AI回复失败:', error)
@@ -269,6 +343,18 @@ const replayMessageByAI = async (bot: Wechaty, talker: string, messages: Message
     log.error('AI回复失败:', error)
     throw error
   }
+}
+
+const readVarint = (buf: Buffer, pos: number) => {
+  let value = 0
+  let shift = 0
+  let byte: number
+  do {
+    byte = buf[pos++] as number
+    value |= (byte & 0x7f) << shift
+    shift += 7
+  } while (byte & 0x80)
+  return { value, newPos: pos }
 }
 
 export {

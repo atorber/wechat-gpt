@@ -4,12 +4,24 @@
 修改config.json配置文件，即修改api配置
 */
 import fs from 'fs'
-import type { BaseConfig, ChatData, WhiteList } from './types/mod.js'
+import type { BaseConfig, ChatData } from './types/mod.js'
 import dotenv from 'dotenv'
 // 加载环境变量
 dotenv.config()
 
+const files: {
+  [key: string]: {
+    file_name: string;
+    file_size: number;
+    fileWriteStream?: any;
+    targetFilePath: string;
+    targetFileUrl: string;
+  }
+} = {}
+
 export const CONFIG = {
+  ROOT_DIR: process.env['ROOT_DIR'] || '',
+  BASE_URL: process.env['BASE_URL'] || '',
   OPENAI_API_KEY: process.env['OPENAI_API_KEY'] || '',
   OPENAI_BASE_URL: process.env['OPENAI_API_BASE_URL'] || '',
   OPENAI_MODEL: process.env['OPENAI_MODEL'] || '',
@@ -19,6 +31,7 @@ export const CONFIG = {
   WECHATY_PUPPET: process.env['WECHATY_PUPPET'] || '',
   WECHATY_TOKEN: process.env['WECHATY_TOKEN'] || '',
   DEFAULT_AVATAR: 'https://im.gzydong.club/public/media/image/avatar/20230516/c5039ad4f29de2fd2c7f5a1789e155f5_200x200.png',
+  FILES: files,
 }
 
 export const baseConfig: BaseConfig = {
@@ -92,26 +105,12 @@ export const baseConfig: BaseConfig = {
   },
 }
 
-const talk: any = JSON.parse(fs.readFileSync('data/talk.json', 'utf8'))
-
 export class BotConfig {
 
   wxid: string
 
   constructor (wxid: string) {
     this.wxid = wxid
-  }
-
-  updateHistory (curHistory: ChatData) {
-
-  }
-
-  updateRecord (curRecord: any) {
-  }
-
-  updateTalk (curTalk: any) {
-    talk[this.wxid] = curTalk
-    fs.writeFileSync('data/talk.json', JSON.stringify(talk, null, '\t'))
   }
 
   updateData (data: any, filename: string) {
@@ -133,11 +132,6 @@ export class BotConfig {
       time: [],
     }
     return curHistory
-  }
-
-  getTalk () {
-    const curTalk = talk[this.wxid] || {}
-    return curTalk
   }
 
   getRecord () {

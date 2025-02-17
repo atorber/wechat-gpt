@@ -2,16 +2,15 @@
 /* eslint-disable camelcase */
 /* eslint-disable sort-keys */
 import 'dotenv/config.js'
-import { Contact, Message, ScanStatus, types, WechatyBuilder, log, Room, Sayable, Wechaty } from 'wechaty'
+import { Contact, Message, types, log, Wechaty } from 'wechaty'
 import { FileBox } from 'file-box'
-import { WechatferryPuppet } from '@atorber/puppet'
-import qrcodeTerminal from 'qrcode-terminal'
-import { BotConfig, CONFIG } from './config.js'
+import { bot, sendMessage, getTalkList } from './bot/index.js'
+import { CONFIG } from './config.js'
 import type { SendTextRequest, MessagePublishRequest } from './types/mod.js'
 import { v4 as uuidv4 } from 'uuid'
 import fs from 'fs'
 import { addMessage } from './api/message.js'
-import { getTalkRecordsFromServer, getTalkRecordsFromDB, replayMessageByAI } from './api/handler.js'
+import { getTalkRecordsFromServer, replayMessageByAI } from './api/handler.js'
 import {
   getAvatarUrl,
   updateChats,
@@ -39,15 +38,12 @@ import websockify from 'koa-websocket'
 import serve from 'koa-static'
 import { loggerMiddleware } from './middleware/logger.js'
 import UserController from './controller/user-controller.js'
+import FileController from './controller/file-controller.js'
+import ContactController from './controller/contact-controller.js'
+import TalkController from './controller/talk-controller.js'
 
-// 获取当前文件根目录路径
-const rootDir = path.resolve(process.cwd(), './')
+const rootDir = CONFIG.ROOT_DIR
 log.info('rootDir:', rootDir)
-
-let currentUser: Contact
-let botConfig: BotConfig
-
-const whiteList: any = []
 
 let webClient: any
 let chats: { [key: string]: any }
@@ -59,102 +55,10 @@ const pp = new PoemPalette(CONFIG.MJ_TOKEN, CONFIG.COZE_TOKEN)
 const ppCoze = new PoemPaletteCoze(CONFIG.COZE_TOKEN, CONFIG.BOT_ID)
 let isCozeCreating = false
 
-// 设置定时任务，每隔 3 秒执行一次
-setInterval(() => {
-  console.info('定时任务执行', new Date().toLocaleString())
-  botConfig.updateTalk(chats)
-  chats = botConfig.getTalk()
-}, 30000)
-
-// log.info('config:', JSON.stringify(config, null, '\t'))
-
-type Publisher = Contact | Message | Room
-
-const sendMessage = async (publisher: Publisher, text: Sayable): Promise<void> => {
-  const replyMessage: Message | void = await publisher.say(text)
-  if (replyMessage) {
-    await updateChats(replyMessage, chats, webClient)
-    await addMessage(replyMessage)
-  }
-
-  let listener: Contact | undefined, room: Room | undefined
-
-  const topic = await (publisher as Room).payload?.topic
-
-  if (topic) {
-    room = publisher as Room
-  } else if ((publisher as Message).payload?.text) {
-    const rawMessage = publisher as Message
-    if (rawMessage.room()) {
-      room = rawMessage.room()
-    } else {
-      listener = rawMessage.talker()
-    }
-  } else {
-    listener = publisher as Contact
-  }
-
-  const message: any = {
-    id: uuidv4(),
-    payload: {
-      filename: '',
-      id: uuidv4(),
-      listenerId: listener?.id,
-      mentionIdList: [],
-      roomId: '',
-      talkerId: currentUser.id,
-      text: text.toString(),
-      timestamp: new Date().getTime(),
-      type: 7,
-    },
-    talker: () => currentUser,
-    listener: () => listener,
-    room: () => room,
-  }
-
-  await addMessage(message)
-}
-
-function onScan (qrcode: string, status: ScanStatus) {
-  if (status === ScanStatus.Waiting || status === ScanStatus.Timeout) {
-    const qrcodeImageUrl = [
-      'https://wechaty.js.org/qrcode/',
-      encodeURIComponent(qrcode),
-    ].join('')
-    log.info('StarterBot', 'onScan: %s(%s) - %s', ScanStatus[status], status, qrcodeImageUrl)
-
-    qrcodeTerminal.generate(qrcode, { small: true })  // show qrcode on console
-
-  } else {
-    log.info('StarterBot', 'onScan: %s(%s)', ScanStatus[status], status)
-  }
-}
-
-const initConfig = (user: Contact) => {
-  log.info('StarterBot initConfig...')
-  currentUser = user
-  botConfig = new BotConfig(user.id)
-  chats = botConfig.getTalk()
-}
-
 // 登录成功
-function onLogin (user: Contact) {
+async function onLogin (user: Contact) {
   log.info('StarterBot', '%s login', user)
-  if (CONFIG.WECHATY_PUPPET && [ 'wechaty-puppet-wechat', 'wechaty-puppet-wechat4u', 'wechaty-puppet-padlocal', 'wechaty-puppet-wechatferry' ].includes(CONFIG.WECHATY_PUPPET)) {
-    initConfig(user)
-  }
-}
-
-// 机器人就绪
-function onReady () {
-  if (CONFIG.WECHATY_PUPPET && [ 'wechaty-puppet-service' ].includes(CONFIG.WECHATY_PUPPET)) {
-    initConfig(bot.currentUser)
-  }
-}
-
-// 登出
-function onLogout (user: Contact) {
-  log.info('StarterBot', '%s logout', user)
+  chats = await getTalkList()
 }
 
 // 收到消息
@@ -188,9 +92,6 @@ async function onMessage (msg: Message) {
         }
         log.info('curUser', curUser)
         log.info('curId', curId)
-
-        const curUserConfig = whiteList[curId] || undefined
-        log.info('curUserConfig:', JSON.stringify(curUserConfig))
 
         if ((msg.type() === types.Message.Text || msg.type() === types.Message.Audio)) {
           if (text.startsWith('/生成诗词')) {
@@ -320,107 +221,24 @@ async function onMessage (msg: Message) {
   }
 }
 
-// 构建机器人
-const ops: any = {
-  name: 'WechatGPT',
-  puppet: CONFIG.WECHATY_PUPPET,
-} // 默认web版微信客户端
-
-const token = CONFIG.WECHATY_TOKEN
-const puppet = CONFIG.WECHATY_PUPPET
-log.info('puppet:', puppet)
-switch (puppet) {
-  case 'wechaty-puppet-service':// 企业版微信客户端
-    ops.puppetOptions = { token }
-    process.env['WECHATY_PUPPET_SERVICE_NO_TLS_INSECURE_CLIENT'] = 'true'
-    process.env['WECHATY_PUPPET_SERVICE_AUTHORITY'] = 'token-service-discovery-test.juzibot.com'
-    break
-  case 'wechaty-puppet-wechat4u':
-    break
-  case 'wechaty-puppet-wechat':// web版微信客户端
-    ops.puppetOptions = { uos: true }
-    break
-  case 'wechaty-puppet-xp':
-    break
-  case 'wechaty-puppet-padlocal':
-    ops.puppetOptions = { token }
-    break
-  case 'wechaty-puppet-wechatferry':
-    ops.puppet = new WechatferryPuppet()
-    break
-  default:
-    log.info('不支持的puppet')
-}
-
-const bot = WechatyBuilder.build(ops)
-bot.on('scan', onScan)
 bot.on('login', onLogin)
-bot.on('ready', onReady)
-bot.on('logout', onLogout)
 bot.on('message', onMessage)
-bot.on('friendship', async friendship => {
-  try {
-    switch (friendship.type()) {
 
-      // 1. New Friend Request
-
-      case bot.Friendship.Type.Receive:
-        await friendship.accept()
-        await friendship.contact().say('你好，我是你的智能助手瓦力。发送 帮助 获取操作说明')
-        break
-
-        // 2. Friend Ship Confirmed
-
-      case bot.Friendship.Type.Confirm:
-        log.info('case bot.Friendship.Type.Confirm:', '好友请求被确认')
-        await friendship.contact().say('你好，我是你的智能助手瓦力。发送 帮助 获取操作说明~')
-        break
-    }
-  } catch (e) {
-    console.error(e)
-  }
-})
-
-// bot.start()
-//   .then(() => log.info('StarterBot', 'Starter Bot Started.'))
-//   .catch(e => log.error('StarterBot', e))
-
-function startBot () {
+async function startBot () {
   log.info('开始启动...')
   try {
-    bot.stop().then(() => {
-      bot.start()
-        .then(() => {
-          log.info('机器人已启动')
-          return true
-        })
-        .catch(e => {
-          log.error('StarterBot 失败...', e)
-          // 等待一段时间后重启
-        })
-      return true
-    }).catch(e => {
-      log.error('机器人启动失败...', e)
-      bot.start()
-        .then(() => {
-          log.info('StarterBot', 'Starter Bot Started.')
-          return true
-        })
-        .catch(e => {
-          log.error('StarterBot 失败...', e)
-          // 等待一段时间后重启
-          setTimeout(startBot, 5000)  // 5秒后重启
-        })
-    })
+    await bot.stop()
+    await bot.start()
+    log.info('机器人已启动')
   } catch (e) {
     log.error('机器人停止失败...')
-    // 等待一段时间后重启
-    setTimeout(startBot, 5000)  // 5秒后重启
   }
 }
 
 // 启动 bot
-startBot()
+startBot().catch(e => {
+  log.error('机器人启动失败...', e)
+})
 
 const app = new Koa()
 const router = new Router()
@@ -437,6 +255,11 @@ app.use(koaBody({
 // 添加日志中间件（确保它是第一个中间件）
 app.use(loggerMiddleware)
 
+app.use(async (ctx, next) => {
+  ctx.bot = bot
+  await next()
+})
+
 // 假设静态资源位于项目的 `public` 目录
 app.use(serve(path.join(rootDir, 'public')))
 
@@ -444,103 +267,12 @@ app.use(serve(path.join(rootDir, 'public')))
 // 登录
 router.post('/api/v1/auth/login', UserController.login)
 
-// 发送文本消息/api/v1/talk/message/publish
-router.post('/api/v1/talk/message/publish', async (ctx: any) => {
-  // {"type":"text","content":"ff","quote_id":"","mentions":[],"receiver":{"receiver_id":2055,"talk_type":1}}
-  // {"type":"image","width":1024,"height":1024,"url":"https://im-static.gzydong.com/public/media/image/202404/2f82bc68-131c-4bac-a85f-46462b630cb9_1024x1024.png","size":10000,"receiver":{"receiver_id":2055,"talk_type":1}}
-  console.info('ctx.request.body:', ctx.request.body)
-  const model: MessagePublishRequest = ctx.request.body
-  const receiver = model.receiver
-  const receiver_id = receiver.receiver_id
-  if (receiver_id.indexOf('@') > -1 || receiver_id.indexOf('R:') > -1) {
-    const room = await bot.Room.find({ id: receiver_id })
-    if (room) {
-      if (model.type === 'text') {
-        await sendMessage(room, model.content)
-      }
-      if (model.type === 'image') {
-        const fileBox = FileBox.fromUrl(model.url)
-        await sendMessage(room, fileBox)
-      }
-    }
-    const response = {
-      code: 200,
-      message: 'success',
-      data: {},
-    }
-    ctx.set('Content-Type', 'application/json; charset=utf-8')
-    ctx.body = response
-  } else {
-    const contact = await bot.Contact.find({ id: receiver_id })
-    if (contact) {
-      if (model.type === 'text') {
-        // await contact.say(model.content)
-        await sendMessage(contact, model.content)
-      }
-      if (model.type === 'image') {
-        const fileBox = FileBox.fromUrl(model.url)
-        // await contact.say(fileBox)
-        await sendMessage(contact, fileBox)
-      }
-    }
-    const response = {
-      code: 200,
-      message: 'success',
-      data: {},
-    }
-    ctx.set('Content-Type', 'application/json; charset=utf-8')
-    ctx.body = response
-  }
-})
+// 发送文本消息
+router.post('/api/v1/talk/message/publish', TalkController.sendMessage)
 
 // 上传图片/api/v1/upload/image
-router.post('/api/v1/upload/image', async (ctx: any) => {
-  console.info('ctx.request:', ctx.request.files)
-  try {
-    const file = ctx.request.files.file
-    if (!file) {
-      ctx.throw(400, 'No file uploaded!')
-    }
-    log.info('file:', file)
-    log.info('file:', JSON.stringify(file))
-    const fileJson: any = JSON.parse(JSON.stringify(file))
-    const fileExt = path.extname(fileJson.originalFilename).toLowerCase()
-    if (![ '.jpg', '.jpeg', '.png', '.gif' ].includes(fileExt)) {
-      ctx.throw(400, 'Only image files are allowed!')
-    }
+router.post('/api/v1/upload/image', FileController.uploadImage)
 
-    const newFilename = `${Date.now()}${fileExt}`
-    const newFilePath = path.join(rootDir, 'public/uploads', newFilename)
-
-    const reader = fs.createReadStream(fileJson.filepath)
-    const writer = fs.createWriteStream(newFilePath)
-    reader.pipe(writer)
-    log.info('uploading %s -> %s', file.name, writer.path)
-
-    const response = {
-      code: 200,
-      message: 'success',
-      data: {
-        src: `http://127.0.0.1:9503/uploads/${newFilename}`,
-      },
-    }
-    ctx.set('Content-Type', 'application/json; charset=utf-8')
-    ctx.body = response
-  } catch (err) {
-    log.error('上传图片失败...', err)
-    ctx.throw(400, '上传图片失败...')
-  }
-})
-
-const files: {
-  [key: string]: {
-    file_name: string;
-    file_size: number;
-    fileWriteStream?: any;
-    targetFilePath: string;
-    targetFileUrl: string;
-  }
-} = {}
 // 获取上传文件id /api/v1/upload/multipart/initiate
 router.post('/api/v1/upload/multipart/initiate', async (ctx: any) => {
   // {file_name: "2024年清单.md", file_size: 1357}
@@ -550,12 +282,12 @@ router.post('/api/v1/upload/multipart/initiate', async (ctx: any) => {
   // 目标文件，将要创建或覆写
   const curTime = new Date().getTime()
   const targetFilePath = path.join(rootDir, 'public', 'uploads', curTime + '_' + file_name)
-  const targetFileUrl = `http://127.0.0.1:9503/uploads/${curTime + '_' + file_name}`
+  const targetFileUrl = `${CONFIG.BASE_URL}/uploads/${curTime + '_' + file_name}`
 
   // 创建一个可写流用于输出组装后的文件
   // const fileWriteStream = fs.createWriteStream(targetFilePath)
 
-  files[upload_id] = { file_name, file_size, targetFilePath, targetFileUrl }
+  CONFIG.FILES[upload_id] = { file_name, file_size, targetFilePath, targetFileUrl }
   const response = {
     code: 200,
     data: {
@@ -587,7 +319,7 @@ router.post('/api/v1/upload/multipart', async (ctx: any) => {
   const { upload_id, split_index, split_num } = ctx.request.body
   const file = ctx.request.files.file
   const fileJson: any = JSON.parse(JSON.stringify(file))
-  const curFile = files[upload_id]
+  const curFile = CONFIG.FILES[upload_id]
   const response = {
     code: 200,
     message: 'success',
@@ -621,53 +353,7 @@ router.post('/api/v1/upload/multipart', async (ctx: any) => {
 })
 
 // 发送文件消息/api/v1/talk/message/file
-router.post('/api/v1/talk/message/file', async (ctx: any) => {
-  // {
-  //   "upload_id": "fa86a0c1-28cf-4312-b27e-687aeea9f8c9",
-  //   "receiver_id": 2055,
-  //   "talk_type": 1
-  // }
-  const model: MessagePublishRequest = ctx.request.body
-  log.info('model:', JSON.stringify(model))
-  const {
-    upload_id,
-    receiver_id,
-    talk_type,
-  } = model
-
-  log.info('receiver_id:', receiver_id, upload_id, talk_type)
-  const file = files[upload_id]
-  log.info('file url:', file?.targetFileUrl)
-  if (receiver_id.indexOf('@') > -1) {
-    const room = await bot.Room.find({ id: receiver_id })
-    if (room) {
-      const fileBox = FileBox.fromUrl(file?.targetFileUrl as string)
-      await room.say(fileBox)
-
-    }
-    const response = {
-      code: 200,
-      message: 'success',
-      data: {},
-    }
-    ctx.set('Content-Type', 'application/json; charset=utf-8')
-    ctx.body = response
-  } else {
-    const contact = await bot.Contact.find({ id: receiver_id })
-    if (contact) {
-      const fileBox = FileBox.fromUrl(file?.targetFileUrl as string)
-      await contact.say(fileBox)
-
-    }
-    const response = {
-      code: 200,
-      message: 'success',
-      data: {},
-    }
-    ctx.set('Content-Type', 'application/json; charset=utf-8')
-    ctx.body = response
-  }
-})
+router.post('/api/v1/talk/message/file', TalkController.sendFile)
 
 // 获取联系人列表
 router.get('/api/v1/contact/list', async (ctx: any) => {
@@ -902,74 +588,7 @@ router.get('/api/v1/contact/detail', async (ctx: any) => {
 })
 
 router.get('/api/v1/talk/list', async (ctx: any) => {
-  const result = []
-  const talkRecords = await getTalkRecordsFromDB(bot)
-  console.info('talkRecords:', talkRecords)
-
-  for (const item of talkRecords) {
-    const StrTalker = item.StrTalker
-    console.info('StrTalker:', StrTalker)
-    const id = StrTalker.includes('@chatroom') ? `2_${StrTalker}` : `1_${StrTalker}`
-    const talk_type = StrTalker.includes('@chatroom') ? 2 : 1
-    const updated_at = new Date(item.CreateTime * 1000 + 8 * 60 * 60 * 1000).toISOString().replace('T', ' ').replace('Z', '')
-    let name = ''
-    let avatar = ''
-    if (StrTalker.includes('@chatroom')) {
-      try {
-        const room = await bot.Room.find({ id: StrTalker })
-        name = await room?.topic() || ''
-        console.info('获取群名称成功:', room)
-        if (room) {
-          const avatarObj = await room.avatar()
-          const avatarJson = avatarObj.toJSON() as any
-          avatar = avatarJson.url as string
-          // console.info('获取群头像成功:', avatarJson)
-        }
-      } catch (err) {
-        console.info('获取群名称失败:', err)
-      }
-    } else {
-      try {
-        const contact = await bot.Contact.find({ id: StrTalker })
-        name = contact?.name() || ''
-        console.info('获取联系人名称成功:', contact)
-        if (contact) {
-          const avatarObj = await contact.avatar()
-          const avatarJson = avatarObj.toJSON() as any
-          avatar = avatarJson.url as string
-          // console.info('获取联系人头像成功:', avatarJson)
-        }
-      } catch (err) {
-        console.info('获取联系人名称失败:', err)
-      }
-    }
-    const talkRecord = {
-      avatar,
-      id,
-      index_name: id,
-      is_disturb: 0,
-      is_online: 1,
-      is_robot: 0,
-      is_top: 0,
-      msg_text: item.StrContent || '...',
-      name,
-      receiver_id: StrTalker,
-      remark_name: '',
-      talk_type,
-      unread_num: 0,
-      updated_at,
-    }
-    if (name) {
-      result.push(talkRecord)
-    }
-  }
-
-  // for (const key in chats) {
-  //   result.push(chats[key])
-  // }
-
-  // console.info('result:', result)
-
+  const result = await getTalkList()
   const response = {
     code: 200,
     message: 'success',
@@ -982,12 +601,7 @@ router.get('/api/v1/talk/list', async (ctx: any) => {
 
 })
 
-router.get('/api/v1/contact/apply/unread-num', async (ctx: any) => {
-  const response = { code: 200, message: 'success', data: { unread_num: 0 } }
-  ctx.set('Content-Type', 'application/json; charset=utf-8')
-  ctx.body = response
-
-})
+router.get('/api/v1/contact/apply/unread-num', ContactController.getUnreadNum)
 
 type ApplyRecord = {
   // Add properties for apply records
@@ -1050,10 +664,11 @@ router.post('/api/v1/talk/create', async (ctx) => {
   const receiver_id = requestBody.receiver_id
   const talk_type = requestBody.talk_type
   const chatId = `${talk_type}_${receiver_id}`
-  const chats = botConfig.getTalk()
-  let chat = chats[chatId]
+  chats = await getTalkList()
+  const chat = chats[chatId]
+
   if (!chat) {
-    chat = {
+    const chat = {
       avatar: 'https://im.gzydong.club/public/media/image/talk/20220221/447d236da1b5787d25f6b0461f889f76_96x96.png',
       id: chatId,
       index_name: chatId,
@@ -1070,7 +685,6 @@ router.post('/api/v1/talk/create', async (ctx) => {
       updated_at: '2024-04-17 13:43:44',
     }
     chats[chatId] = chat
-    botConfig.updateTalk(chats)
   }
   const response = {
     code: 200,
@@ -1144,7 +758,7 @@ const getTalkRecords = async (
     //     //   height: 1024,
     //     //   name: '',
     //     //   size: thumbnail.size || 100,
-    //     //   url: `http://127.0.0.1:9503/uploads/${message.id}.jpg`,
+    //     //   url: `${CONFIG.BASE_URL}/uploads/${message.id}.jpg`,
     //     //   width: 1024,
     //     // } as any
     //     break
@@ -1158,7 +772,7 @@ const getTalkRecords = async (
     //     // curMsg.extra = {
     //     //   drive: 1,
     //     //   name:fileName,
-    //     //   path:`http://127.0.0.1:9503/uploads/${message.id}_${fileName}`,
+    //     //   path:`${CONFIG.BASE_URL}/uploads/${message.id}_${fileName}`,
     //     //   size:file.size || 100,
     //     // } as any
     //     break
@@ -1172,7 +786,7 @@ const getTalkRecords = async (
     //     // curMsg.extra = {
     //     //   duration: 0,
     //     //   name:fileName || '',
-    //     //   url:`http://127.0.0.1:9503/uploads/${message.id}_${fileName}`,
+    //     //   url:`${CONFIG.BASE_URL}/uploads/${message.id}_${fileName}`,
     //     //   size:file.size || 0,
     //     // } as any
     //     break
@@ -1256,6 +870,29 @@ router.post('/api/v1/talk/message/text', async (ctx) => {
 
 })
 
+router.get('/api/v1/talk/reply/byai', async (ctx) => {
+  const recordId = Number(ctx.query['record_id']) || 0
+  const receiverId = ctx.query['receiver_id'] as string
+  const limit = Number(ctx.query['limit'] || 30)
+  const cursor = Number(ctx.query['cursor'] || 0)
+
+  const messages = await getTalkRecordsFromServer(receiverId, limit, cursor, bot)
+  log.info('messages:', messages)
+  const replayMessage = await replayMessageByAI(bot, receiverId, messages)
+
+  const response = {
+    code: 200,
+    message: 'success',
+    data: {
+      replayMessage,
+      receiverId,
+      // messages,
+    },
+  }
+
+  ctx.body = response
+})
+
 // 路由
 AppRoutes.forEach((route) => (router as any)[route.method](route.path, route.action))
 
@@ -1324,3 +961,13 @@ appWs.ws.use(routerWs.allowedMethods())
 appWs.listen(process.env['WS_PORT'] || 9504, () => {
   log.info(`WebSocket server running on ws://127.0.0.1:${process.env['WS_PORT'] || 9504}`)
 })
+
+// 1. 声明 bot 类型扩展
+declare module 'koa' {
+  interface DefaultState {
+    bot: Wechaty
+  }
+  interface DefaultContext {
+    bot: Wechaty
+  }
+}

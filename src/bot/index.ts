@@ -1,5 +1,6 @@
 /* eslint-disable sort-keys */
-import { Contact, Message, ScanStatus, types, WechatyBuilder, log, Room, Sayable } from 'wechaty'
+/* eslint-disable camelcase */
+import { Contact, Message, ScanStatus, types, WechatyBuilder, log, Room, Sayable, Friendship } from 'wechaty'
 import { FileBox } from 'file-box'
 import { WechatferryPuppet } from '@atorber/puppet'
 import qrcodeTerminal from 'qrcode-terminal'
@@ -15,11 +16,10 @@ import { PoemPalette } from './handlers/poem-palette.js'
 import { PoemPalette as PoemPaletteCoze } from './handlers/poem-palette-coze.js'
 import { createPoster } from './handlers/poem.js'
 
-import { getTalkRecordsFromServer, replayMessageByAI } from '../api/handler.js'
+import { getTalkRecordsFromServer, replayMessageByAI, getTalkRecordsFromDB } from '../api/handler.js'
 
 let currentUser: Contact
-let botConfig: BotConfig
-let chats: { [key: string]: any[] }
+let chats: { [key: string]: any[] } = {}
 let webClient: any
 const whiteList: any = []
 let isCreating = false
@@ -76,6 +76,71 @@ const sendMessage = async (publisher: Publisher, text: Sayable): Promise<void> =
   await addMessage(message)
 }
 
+const getTalkList = async () => {
+  const result = []
+  const talkRecords = await getTalkRecordsFromDB(bot)
+  console.info('talkRecords:', talkRecords)
+
+  for (const item of talkRecords) {
+    const StrTalker = item.StrTalker
+    console.info('StrTalker:', StrTalker)
+    const id = StrTalker.includes('@chatroom') ? `2_${StrTalker}` : `1_${StrTalker}`
+    const talk_type = StrTalker.includes('@chatroom') ? 2 : 1
+    const updated_at = new Date(item.CreateTime * 1000 + 8 * 60 * 60 * 1000).toISOString().replace('T', ' ').replace('Z', '')
+    let name = ''
+    let avatar = ''
+    if (StrTalker.includes('@chatroom')) {
+      try {
+        const room = await bot.Room.find({ id: StrTalker })
+        name = await room?.topic() || ''
+        console.info('获取群名称成功:', room)
+        if (room) {
+          const avatarObj = await room.avatar()
+          const avatarJson = avatarObj.toJSON() as any
+          avatar = avatarJson.url as string
+          // console.info('获取群头像成功:', avatarJson)
+        }
+      } catch (err) {
+        console.info('获取群名称失败:', err)
+      }
+    } else {
+      try {
+        const contact = await bot.Contact.find({ id: StrTalker })
+        name = contact?.name() || ''
+        console.info('获取联系人名称成功:', contact)
+        if (contact) {
+          const avatarObj = await contact.avatar()
+          const avatarJson = avatarObj.toJSON() as any
+          avatar = avatarJson.url as string
+          // console.info('获取联系人头像成功:', avatarJson)
+        }
+      } catch (err) {
+        console.info('获取联系人名称失败:', err)
+      }
+    }
+    const talkRecord = {
+      avatar,
+      id,
+      index_name: id,
+      is_disturb: 0,
+      is_online: 1,
+      is_robot: 0,
+      is_top: 0,
+      msg_text: item.StrContent || '...',
+      name,
+      receiver_id: StrTalker,
+      remark_name: '',
+      talk_type,
+      unread_num: 0,
+      updated_at,
+    }
+    if (name) {
+      result.push(talkRecord)
+    }
+  }
+  return result
+}
+
 function onScan (qrcode: string, status: ScanStatus) {
   if (status === ScanStatus.Waiting || status === ScanStatus.Timeout) {
     const qrcodeImageUrl = [
@@ -94,8 +159,7 @@ function onScan (qrcode: string, status: ScanStatus) {
 const initConfig = (user: Contact) => {
   log.info('StarterBot initConfig...')
   currentUser = user
-  botConfig = new BotConfig(user.id)
-  chats = botConfig.getTalk()
+  chats = {}
 }
 
 // 登录成功
@@ -105,9 +169,7 @@ function onLogin (user: Contact) {
 }
 
 // 机器人就绪
-function onReady () {
-
-}
+async function onReady () {}
 
 // 登出
 function onLogout (user: Contact) {
@@ -277,6 +339,30 @@ async function onMessage (msg: Message) {
   }
 }
 
+const onFriendship = async (friendship: Friendship) => {
+  log.info('onFriendship:', friendship)
+  try {
+    switch (friendship.type()) {
+
+      // 1. New Friend Request
+
+      case bot.Friendship.Type.Receive:
+        await friendship.accept()
+        await friendship.contact().say('你好，我是你的智能助手瓦力。发送 帮助 获取操作说明')
+        break
+
+        // 2. Friend Ship Confirmed
+
+      case bot.Friendship.Type.Confirm:
+        log.info('case bot.Friendship.Type.Confirm:', '好友请求被确认')
+        await friendship.contact().say('你好，我是你的智能助手瓦力。发送 帮助 获取操作说明~')
+        break
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 // 构建机器人
 const ops: any = {
   name: 'WechatGPT',
@@ -310,33 +396,11 @@ switch (puppet) {
 }
 
 const bot = WechatyBuilder.build(ops)
+
 bot.on('scan', onScan)
-bot.on('login', onLogin)
 bot.on('ready', onReady)
 bot.on('logout', onLogout)
-bot.on('message', onMessage)
-bot.on('friendship', async friendship => {
-  try {
-    switch (friendship.type()) {
-
-      // 1. New Friend Request
-
-      case bot.Friendship.Type.Receive:
-        await friendship.accept()
-        await friendship.contact().say('你好，我是你的智能助手瓦力。发送 帮助 获取操作说明')
-        break
-
-        // 2. Friend Ship Confirmed
-
-      case bot.Friendship.Type.Confirm:
-        log.info('case bot.Friendship.Type.Confirm:', '好友请求被确认')
-        await friendship.contact().say('你好，我是你的智能助手瓦力。发送 帮助 获取操作说明~')
-        break
-    }
-  } catch (e) {
-    console.error(e)
-  }
-})
+bot.on('friendship', onFriendship)
 
 export {
   bot,
@@ -346,4 +410,5 @@ export {
   isCreating,
   textPoemLatest,
   isCozeCreating,
+  getTalkList,
 }
